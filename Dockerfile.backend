@@ -1,0 +1,19 @@
+# Estágio de build
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /src
+
+# Copia tudo para o contêiner
+COPY backend/ ./
+
+# Restaura as dependências
+RUN dotnet restore "Hypesoft.sln"
+
+# Publica o aplicativo
+RUN dotnet publish "src/Hypesoft.API/Hypesoft.API.csproj" -c Release -o /app/publish
+
+# Estágio final
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
+WORKDIR /app
+EXPOSE 5000
+COPY --from=build /app/publish .
+ENTRYPOINT ["dotnet", "Hypesoft.API.dll"]

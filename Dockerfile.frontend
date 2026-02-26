@@ -1,0 +1,37 @@
+# 1. Build Stage: Installs dependencies and builds the application.
+FROM node:20-alpine AS builder
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files and install dependencies
+COPY frontend/package*.json ./
+RUN npm install
+
+# Copy the rest of the source code
+COPY frontend/ ./
+
+# Build the application
+RUN npm run build
+
+# 2. Production Stage: Creates a lightweight image with only production artifacts.
+FROM node:20-alpine AS runner
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files from the builder stage
+COPY --from=builder /app/package*.json ./
+
+# Install only production dependencies
+RUN npm install --omit=dev
+
+# Copy the built, standalone application from the builder stage
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+
+# Expose the port the app runs on
+EXPOSE 3000
+
+# Set the command to start the application
+CMD ["node", "server.js"]
