@@ -64,4 +64,7 @@ public sealed class ProductRepository : IProductRepository
 
     public async Task<bool> ExistsAsync(string id, CancellationToken cancellationToken = default)
         => await _context.Products.AnyAsync(p => p.Id == id, cancellationToken);
+
+    public async Task<bool> HasProductsInCategoryAsync(string categoryId, CancellationToken cancellationToken = default)
+        => await _context.Products.AnyAsync(p => p.CategoryId == categoryId, cancellationToken);
 }

@@ -18,4 +18,7 @@ public interface IProductRepository
     Task UpdateAsync(Product product, CancellationToken cancellationToken = default);
     Task DeleteAsync(Product product, CancellationToken cancellationToken = default);
     Task<bool> ExistsAsync(string id, CancellationToken cancellationToken = default);
+
+    /// <summary>Returns true if at least one product is associated with the given category.</summary>
+    Task<bool> HasProductsInCategoryAsync(string categoryId, CancellationToken cancellationToken = default);
 }
