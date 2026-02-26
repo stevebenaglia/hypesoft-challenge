@@ -50,4 +50,15 @@ public sealed class ProductsController : ControllerBase
         var result = await _mediator.Send(new GetProductByIdQuery(id), cancellationToken);
         return Ok(result);
     }
+
+    /// <summary>Updates an existing product.</summary>
+    [HttpPut("{id}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> Update(string id, [FromBody] UpdateProductCommand command, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(command with { Id = id }, cancellationToken);
+        return Ok(result);
+    }
 }
