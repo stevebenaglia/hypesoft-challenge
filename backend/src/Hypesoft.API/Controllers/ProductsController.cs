@@ -61,4 +61,14 @@ public sealed class ProductsController : ControllerBase
         var result = await _mediator.Send(command with { Id = id }, cancellationToken);
         return Ok(result);
     }
+
+    /// <summary>Deletes a product by ID.</summary>
+    [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete(string id, CancellationToken cancellationToken)
+    {
+        await _mediator.Send(new DeleteProductCommand(id), cancellationToken);
+        return NoContent();
+    }
 }
