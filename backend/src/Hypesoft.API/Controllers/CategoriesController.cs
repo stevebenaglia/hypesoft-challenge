@@ -1,4 +1,5 @@
 using Hypesoft.Application.Commands.Categories;
+using Hypesoft.Application.Queries.Categories;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -25,8 +26,22 @@ public sealed class CategoriesController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
-    // Placeholder — replaced in next commit.
-    [ApiExplorerSettings(IgnoreApi = true)]
+    /// <summary>Returns all categories as a simple ordered list.</summary>
+    [HttpGet]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new GetCategoriesQuery(), cancellationToken);
+        return Ok(result);
+    }
+
+    /// <summary>Returns a single category by ID.</summary>
     [HttpGet("{id}")]
-    public IActionResult GetById(string id) => NotFound();
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetById(string id, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new GetCategoryByIdQuery(id), cancellationToken);
+        return Ok(result);
+    }
 }
