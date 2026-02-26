@@ -28,18 +28,23 @@ public sealed class UpdateProductHandler : IRequestHandler<UpdateProductCommand,
         var product = await _productRepository.GetByIdAsync(request.Id, cancellationToken)
             ?? throw new NotFoundException("Product", request.Id);
 
+        // Keep existing category when CategoryId is not provided in the request.
+        var effectiveCategoryId = !string.IsNullOrEmpty(request.CategoryId)
+            ? request.CategoryId
+            : product.CategoryId;
+
         product.Update(
             request.Name,
             request.Description,
             request.Price,
             request.StockQuantity,
-            request.CategoryId);
+            effectiveCategoryId);
 
         await _productRepository.UpdateAsync(product, cancellationToken);
 
         var dto = _mapper.Map<ProductDto>(product);
 
-        var category = await _categoryRepository.GetByIdAsync(request.CategoryId, cancellationToken);
+        var category = await _categoryRepository.GetByIdAsync(effectiveCategoryId, cancellationToken);
         dto.CategoryName = category?.Name;
 
         return dto;

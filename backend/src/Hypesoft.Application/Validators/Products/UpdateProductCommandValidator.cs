@@ -8,9 +8,6 @@ public sealed class UpdateProductCommandValidator : AbstractValidator<UpdateProd
 {
     public UpdateProductCommandValidator(ICategoryRepository categoryRepository)
     {
-        RuleFor(x => x.Id)
-            .NotEmpty().WithMessage("Id is required.");
-
         RuleFor(x => x.Name)
             .NotEmpty().WithMessage("Name is required.")
             .MaximumLength(200).WithMessage("Name must not exceed 200 characters.");
@@ -21,9 +18,12 @@ public sealed class UpdateProductCommandValidator : AbstractValidator<UpdateProd
         RuleFor(x => x.StockQuantity)
             .GreaterThanOrEqualTo(0).WithMessage("Stock quantity must be zero or greater.");
 
-        RuleFor(x => x.CategoryId)
-            .NotEmpty().WithMessage("CategoryId is required.")
-            .MustAsync(async (id, ct) => await categoryRepository.ExistsAsync(id, ct))
-            .WithMessage("Category not found.");
+        // CategoryId is optional on update; if provided, it must reference an existing category.
+        When(x => !string.IsNullOrEmpty(x.CategoryId), () =>
+        {
+            RuleFor(x => x.CategoryId)
+                .MustAsync(async (id, ct) => await categoryRepository.ExistsAsync(id!, ct))
+                .WithMessage("Category not found.");
+        });
     }
 }
