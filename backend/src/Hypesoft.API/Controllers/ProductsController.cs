@@ -1,4 +1,5 @@
 using Hypesoft.Application.Commands.Products;
+using Hypesoft.Application.Queries.Products;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -25,8 +26,28 @@ public sealed class ProductsController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
-    // Placeholder so CreatedAtAction can resolve the route before GetById is implemented.
-    [ApiExplorerSettings(IgnoreApi = true)]
+    /// <summary>Returns a paginated list of products with optional filters.</summary>
+    [HttpGet]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAll(
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? searchTerm = null,
+        [FromQuery] string? categoryId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new GetProductsQuery(pageNumber, pageSize, searchTerm, categoryId);
+        var result = await _mediator.Send(query, cancellationToken);
+        return Ok(result);
+    }
+
+    /// <summary>Returns a single product by ID.</summary>
     [HttpGet("{id}")]
-    public IActionResult GetById(string id) => NotFound();
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetById(string id, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new GetProductByIdQuery(id), cancellationToken);
+        return Ok(result);
+    }
 }
