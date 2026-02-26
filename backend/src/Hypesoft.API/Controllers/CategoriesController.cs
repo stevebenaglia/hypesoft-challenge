@@ -55,4 +55,15 @@ public sealed class CategoriesController : ControllerBase
         var result = await _mediator.Send(command with { Id = id }, cancellationToken);
         return Ok(result);
     }
+
+    /// <summary>Deletes a category. Fails with 400 if the category has associated products.</summary>
+    [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete(string id, CancellationToken cancellationToken)
+    {
+        await _mediator.Send(new DeleteCategoryCommand(id), cancellationToken);
+        return NoContent();
+    }
 }
