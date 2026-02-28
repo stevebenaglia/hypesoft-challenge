@@ -1,11 +1,15 @@
+using System.Diagnostics;
+using System.Text.Json;
 using FluentValidation;
 using Hypesoft.Domain.Exceptions;
-using System.Text.Json;
 
 namespace Hypesoft.API.Middlewares;
 
 public sealed class ExceptionHandlingMiddleware
 {
+    private static readonly JsonSerializerOptions JsonOptions =
+        new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+
     private readonly RequestDelegate _next;
     private readonly ILogger<ExceptionHandlingMiddleware> _logger;
 
@@ -20,6 +24,11 @@ public sealed class ExceptionHandlingMiddleware
         try
         {
             await _next(context);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("Request cancelled: {Method} {Path}", context.Request.Method, context.Request.Path);
+            // client disconnected — do not write a response
         }
         catch (ValidationException ex)
         {
@@ -51,18 +60,17 @@ public sealed class ExceptionHandlingMiddleware
         string title,
         Dictionary<string, string[]>? errors = null)
     {
+        if (context.Response.HasStarted)
+            return;
+
+        var traceId = Activity.Current?.Id ?? context.TraceIdentifier;
+
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = statusCode;
 
-        var response = new
-        {
-            title,
-            status = statusCode,
-            errors
-        };
+        var response = new { title, status = statusCode, traceId, errors };
 
-        await context.Response.WriteAsync(JsonSerializer.Serialize(response,
-            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+        await context.Response.WriteAsync(JsonSerializer.Serialize(response, JsonOptions));
     }
 
     private static Dictionary<string, string[]> BuildValidationErrors(ValidationException ex)
