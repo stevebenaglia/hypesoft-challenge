@@ -1,21 +1,52 @@
-import { useState, useEffect } from "react";
+"use client";
+
+import { useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useMutation } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/apiFetch";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import type { Product, Category } from "@/types/api";
+
+const productSchema = z.object({
+  name: z.string().min(1, "Nome é obrigatório").max(200),
+  description: z.string().max(500).optional(),
+  price: z
+    .number({ error: "Preço é obrigatório" })
+    .positive("Preço deve ser maior que zero"),
+  stockQuantity: z
+    .number({ error: "Quantidade é obrigatória" })
+    .int()
+    .min(0, "Quantidade deve ser maior ou igual a zero"),
+  categoryId: z.string().min(1, "Selecione uma categoria"),
+});
+
+type ProductFormData = z.infer<typeof productSchema>;
 
 interface ProductFormModalProps {
   product?: Product | null;
   categories: Category[];
   onClose: () => void;
   onSuccess: (product: Product) => void;
-}
-
-interface ProductFormData {
-  name: string;
-  description: string;
-  price: string;
-  stockQuantity: string;
-  categoryId: string;
 }
 
 export default function ProductFormModal({
@@ -27,187 +58,158 @@ export default function ProductFormModal({
   const { data: session } = useSession();
   const isEditing = !!product;
 
-  const [form, setForm] = useState<ProductFormData>({
-    name: product?.name ?? "",
-    description: product?.description ?? "",
-    price: product?.price.toString() ?? "",
-    stockQuantity: product?.stockQuantity.toString() ?? "0",
-    categoryId: product?.categoryId ?? "",
+  const {
+    register,
+    handleSubmit,
+    control,
+    reset,
+    formState: { errors },
+  } = useForm<ProductFormData>({
+    resolver: zodResolver(productSchema),
+    defaultValues: {
+      name: product?.name ?? "",
+      description: product?.description ?? "",
+      price: product?.price ?? undefined,
+      stockQuantity: product?.stockQuantity ?? 0,
+      categoryId: product?.categoryId ?? (categories[0]?.id ?? ""),
+    },
   });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isEditing && categories.length > 0 && !form.categoryId) {
-      setForm((prev) => ({ ...prev, categoryId: categories[0].id }));
-    }
-  }, [categories, isEditing, form.categoryId]);
+    reset({
+      name: product?.name ?? "",
+      description: product?.description ?? "",
+      price: product?.price ?? undefined,
+      stockQuantity: product?.stockQuantity ?? 0,
+      categoryId: product?.categoryId ?? (categories[0]?.id ?? ""),
+    });
+  }, [product, categories, reset]);
 
-  function handleChange(
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-  ) {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-
-    if (!form.name.trim()) {
-      setError("Nome é obrigatório.");
-      return;
-    }
-    if (!form.categoryId) {
-      setError("Categoria é obrigatória.");
-      return;
-    }
-    const price = parseFloat(form.price);
-    if (isNaN(price) || price <= 0) {
-      setError("Preço deve ser maior que zero.");
-      return;
-    }
-    const stockQuantity = parseInt(form.stockQuantity, 10);
-    if (isNaN(stockQuantity) || stockQuantity < 0) {
-      setError("Quantidade em estoque deve ser maior ou igual a zero.");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const body = {
-        name: form.name.trim(),
-        description: form.description.trim() || undefined,
-        price,
-        stockQuantity,
-        categoryId: form.categoryId,
-      };
-
-      const result = isEditing
-        ? await apiFetch<Product>(`/api/products/${product!.id}`, {
+  const mutation = useMutation({
+    mutationFn: (data: ProductFormData) =>
+      isEditing
+        ? apiFetch<Product>(`/api/products/${product!.id}`, {
             method: "PUT",
             accessToken: session?.accessToken,
-            body: JSON.stringify(body),
+            body: JSON.stringify(data),
           })
-        : await apiFetch<Product>("/api/products", {
+        : apiFetch<Product>("/api/products", {
             method: "POST",
             accessToken: session?.accessToken,
-            body: JSON.stringify(body),
-          });
-
-      onSuccess(result);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro ao salvar produto.");
-    } finally {
-      setLoading(false);
-    }
-  }
+            body: JSON.stringify(data),
+          }),
+    onSuccess,
+  });
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <div className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-xl dark:border-zinc-700 dark:bg-zinc-800">
-        <h2 className="mb-5 text-base font-semibold text-zinc-900 dark:text-zinc-50">
-          {isEditing ? "Editar Produto" : "Novo Produto"}
-        </h2>
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{isEditing ? "Editar Produto" : "Novo Produto"}</DialogTitle>
+        </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+        <form
+          onSubmit={handleSubmit((data) => mutation.mutate(data))}
+          className="flex flex-col gap-4"
+        >
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="name">
               Nome <span className="text-red-500">*</span>
-            </label>
-            <input
-              name="name"
-              value={form.name}
-              onChange={handleChange}
-              maxLength={200}
-              className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-50"
-            />
+            </Label>
+            <Input id="name" {...register("name")} />
+            {errors.name && (
+              <p className="text-xs text-red-500">{errors.name.message}</p>
+            )}
           </div>
 
-          <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-              Descrição
-            </label>
-            <textarea
-              name="description"
-              value={form.description}
-              onChange={handleChange}
-              rows={2}
-              className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-50"
-            />
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="description">Descrição</Label>
+            <Textarea id="description" rows={2} {...register("description")} />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="price">
                 Preço (R$) <span className="text-red-500">*</span>
-              </label>
-              <input
-                name="price"
+              </Label>
+              <Input
+                id="price"
                 type="number"
-                min="0.01"
                 step="0.01"
-                value={form.price}
-                onChange={handleChange}
-                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-50"
+                min="0.01"
+                {...register("price", { valueAsNumber: true })}
               />
+              {errors.price && (
+                <p className="text-xs text-red-500">{errors.price.message}</p>
+              )}
             </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="stockQuantity">
                 Qtd. Estoque <span className="text-red-500">*</span>
-              </label>
-              <input
-                name="stockQuantity"
+              </Label>
+              <Input
+                id="stockQuantity"
                 type="number"
                 min="0"
-                value={form.stockQuantity}
-                onChange={handleChange}
-                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-50"
+                {...register("stockQuantity", { valueAsNumber: true })}
               />
+              {errors.stockQuantity && (
+                <p className="text-xs text-red-500">
+                  {errors.stockQuantity.message}
+                </p>
+              )}
             </div>
           </div>
 
-          <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          <div className="flex flex-col gap-1.5">
+            <Label>
               Categoria <span className="text-red-500">*</span>
-            </label>
-            <select
+            </Label>
+            <Controller
               name="categoryId"
-              value={form.categoryId}
-              onChange={handleChange}
-              className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-50"
-            >
-              <option value="">Selecione uma categoria</option>
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione uma categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {errors.categoryId && (
+              <p className="text-xs text-red-500">{errors.categoryId.message}</p>
+            )}
           </div>
 
-          {error && <p className="text-xs text-red-500">{error}</p>}
+          {mutation.error && (
+            <p className="text-xs text-red-500">
+              {mutation.error instanceof Error
+                ? mutation.error.message
+                : "Erro ao salvar produto."}
+            </p>
+          )}
 
-          <div className="flex justify-end gap-2 pt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-100 dark:hover:bg-zinc-700"
-            >
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
               Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
-            >
-              {loading ? "Salvando..." : isEditing ? "Salvar" : "Criar"}
-            </button>
-          </div>
+            </Button>
+            <Button type="submit" disabled={mutation.isPending}>
+              {mutation.isPending
+                ? "Salvando..."
+                : isEditing
+                  ? "Salvar"
+                  : "Criar"}
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

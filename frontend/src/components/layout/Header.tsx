@@ -1,15 +1,18 @@
+"use client";
+
 import Link from "next/link";
-import { useRouter } from "next/router";
+import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
+import { Button } from "@/components/ui/button";
 
 export default function Header() {
   const { data: session } = useSession();
-  const router = useRouter();
+  const pathname = usePathname();
 
   const isAdmin = session?.user.roles.includes("admin");
 
-  const navLink = (href: string, label: string) =>
-    router.pathname === href
+  const navLink = (href: string) =>
+    pathname === href
       ? "text-sm font-medium text-zinc-900 dark:text-zinc-50"
       : "text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors";
 
@@ -21,14 +24,14 @@ export default function Header() {
             Hypesoft
           </span>
           <nav className="flex gap-6">
-            <Link href="/" className={navLink("/", "Dashboard")}>
+            <Link href="/" className={navLink("/")}>
               Dashboard
             </Link>
-            <Link href="/products" className={navLink("/products", "Produtos")}>
+            <Link href="/products" className={navLink("/products")}>
               Produtos
             </Link>
             {isAdmin && (
-              <Link href="/categories" className={navLink("/categories", "Categorias")}>
+              <Link href="/categories" className={navLink("/categories")}>
                 Categorias
               </Link>
             )}
@@ -44,12 +47,13 @@ export default function Header() {
               {isAdmin ? "Administrador" : "Usuário"}
             </p>
           </div>
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => signOut({ callbackUrl: "/" })}
-            className="rounded-md bg-zinc-100 px-3 py-1.5 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
           >
             Sair
-          </button>
+          </Button>
         </div>
       </div>
     </header>

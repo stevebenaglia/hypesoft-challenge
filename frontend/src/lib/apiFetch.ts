@@ -1,4 +1,9 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
+// Server-side: uses internal Docker network URL directly (INTERNAL_API_URL)
+// Client-side: uses relative path so requests go through Nginx (/api/...)
+const API_URL =
+  typeof window === "undefined"
+    ? (process.env.INTERNAL_API_URL ?? "http://backend:5000")
+    : "";
 
 interface FetchOptions extends RequestInit {
   accessToken?: string;

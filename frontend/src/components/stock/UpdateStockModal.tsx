@@ -1,7 +1,32 @@
-import { useState } from "react";
+"use client";
+
 import { useSession } from "next-auth/react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useMutation } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/apiFetch";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import type { Product } from "@/types/api";
+
+const stockSchema = z.object({
+  quantity: z
+    .number({ error: "Quantidade é obrigatória" })
+    .int()
+    .min(0, "Quantidade deve ser maior ou igual a zero"),
+});
+
+type StockFormData = z.infer<typeof stockSchema>;
 
 interface UpdateStockModalProps {
   product: Product;
@@ -15,77 +40,69 @@ export default function UpdateStockModal({
   onSuccess,
 }: UpdateStockModalProps) {
   const { data: session } = useSession();
-  const [quantity, setQuantity] = useState(product.stockQuantity);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<StockFormData>({
+    resolver: zodResolver(stockSchema),
+    defaultValues: { quantity: product.stockQuantity },
+  });
 
-    try {
-      const updated = await apiFetch<Product>(
-        `/api/products/${product.id}/stock`,
-        {
-          method: "PATCH",
-          accessToken: session?.accessToken,
-          body: JSON.stringify({ quantity }),
-        }
-      );
-      onSuccess(updated);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro ao atualizar estoque.");
-    } finally {
-      setLoading(false);
-    }
-  }
+  const mutation = useMutation({
+    mutationFn: (data: StockFormData) =>
+      apiFetch<Product>(`/api/products/${product.id}/stock`, {
+        method: "PATCH",
+        accessToken: session?.accessToken,
+        body: JSON.stringify({ quantity: data.quantity }),
+      }),
+    onSuccess,
+  });
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <div className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-6 shadow-xl dark:border-zinc-700 dark:bg-zinc-800">
-        <h2 className="mb-1 text-base font-semibold text-zinc-900 dark:text-zinc-50">
-          Atualizar Estoque
-        </h2>
-        <p className="mb-5 text-sm text-zinc-500 truncate">{product.name}</p>
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Atualizar Estoque</DialogTitle>
+          <DialogDescription className="truncate">{product.name}</DialogDescription>
+        </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-              Nova quantidade
-            </label>
-            <input
+        <form
+          onSubmit={handleSubmit((data) => mutation.mutate(data))}
+          className="flex flex-col gap-4"
+        >
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="quantity">Nova quantidade</Label>
+            <Input
+              id="quantity"
               type="number"
               min={0}
-              value={quantity}
-              onChange={(e) => setQuantity(Number(e.target.value))}
-              className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-50"
+              {...register("quantity", { valueAsNumber: true })}
             />
+            {errors.quantity && (
+              <p className="text-xs text-red-500">{errors.quantity.message}</p>
+            )}
           </div>
 
-          {error && <p className="text-xs text-red-500">{error}</p>}
+          {mutation.error && (
+            <p className="text-xs text-red-500">
+              {mutation.error instanceof Error
+                ? mutation.error.message
+                : "Erro ao atualizar estoque."}
+            </p>
+          )}
 
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-100 dark:hover:bg-zinc-700"
-            >
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
               Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
-            >
-              {loading ? "Salvando..." : "Salvar"}
-            </button>
-          </div>
+            </Button>
+            <Button type="submit" disabled={mutation.isPending}>
+              {mutation.isPending ? "Salvando..." : "Salvar"}
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
