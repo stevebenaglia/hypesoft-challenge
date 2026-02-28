@@ -74,4 +74,20 @@ public sealed class ProductRepository : IProductRepository
             .Where(p => p.StockQuantity < threshold)
             .OrderBy(p => p.StockQuantity)
             .ToListAsync(cancellationToken);
+
+    public Task<int> GetTotalCountAsync(CancellationToken cancellationToken = default)
+        => _context.Products.CountAsync(cancellationToken);
+
+    public Task<decimal> GetTotalStockValueAsync(CancellationToken cancellationToken = default)
+        => _context.Products.SumAsync(p => p.Price * p.StockQuantity, cancellationToken);
+
+    public async Task<IEnumerable<(string CategoryId, int Count)>> GetCountByCategoryAsync(CancellationToken cancellationToken = default)
+    {
+        var groups = await _context.Products
+            .GroupBy(p => p.CategoryId)
+            .Select(g => new { CategoryId = g.Key, Count = g.Count() })
+            .ToListAsync(cancellationToken);
+
+        return groups.Select(g => (g.CategoryId, g.Count));
+    }
 }

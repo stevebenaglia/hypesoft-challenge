@@ -24,4 +24,8 @@ public interface IProductRepository
 
     /// <summary>Returns products whose StockQuantity is below the given threshold.</summary>
     Task<IEnumerable<Product>> GetLowStockAsync(int threshold = 10, CancellationToken cancellationToken = default);
+
+    Task<int> GetTotalCountAsync(CancellationToken cancellationToken = default);
+    Task<decimal> GetTotalStockValueAsync(CancellationToken cancellationToken = default);
+    Task<IEnumerable<(string CategoryId, int Count)>> GetCountByCategoryAsync(CancellationToken cancellationToken = default);
 }

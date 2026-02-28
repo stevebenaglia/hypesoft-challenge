@@ -24,33 +24,33 @@ public sealed class GetDashboardSummaryHandler : IRequestHandler<GetDashboardSum
 
     public async Task<DashboardSummaryDto> Handle(GetDashboardSummaryQuery request, CancellationToken cancellationToken)
     {
-        var (allProducts, totalCount) = await _productRepository.GetPagedAsync(1, int.MaxValue, null, null, cancellationToken);
-        var productList = allProducts.ToList();
+        var totalCountTask = _productRepository.GetTotalCountAsync(cancellationToken);
+        var totalValueTask = _productRepository.GetTotalStockValueAsync(cancellationToken);
+        var countByCategoryTask = _productRepository.GetCountByCategoryAsync(cancellationToken);
+        var lowStockTask = _productRepository.GetLowStockAsync(10, cancellationToken);
+        var categoriesTask = _categoryRepository.GetAllAsync(cancellationToken);
 
-        var categories = (await _categoryRepository.GetAllAsync(cancellationToken)).ToList();
-        var categoryMap = categories.ToDictionary(c => c.Id, c => c.Name);
+        await Task.WhenAll(totalCountTask, totalValueTask, countByCategoryTask, lowStockTask, categoriesTask);
 
-        var totalStockValue = productList.Sum(p => p.Price * p.StockQuantity);
+        var categoryMap = (await categoriesTask).ToDictionary(c => c.Id, c => c.Name);
 
-        var lowStockProducts = await _productRepository.GetLowStockAsync(10, cancellationToken);
-        var lowStockDtos = _mapper.Map<IEnumerable<ProductDto>>(lowStockProducts).ToList();
+        var lowStockDtos = _mapper.Map<IEnumerable<ProductDto>>(await lowStockTask).ToList();
         foreach (var dto in lowStockDtos)
             dto.CategoryName = categoryMap.GetValueOrDefault(dto.CategoryId);
 
-        var productsByCategory = productList
-            .GroupBy(p => p.CategoryId)
+        var productsByCategory = (await countByCategoryTask)
             .Select(g => new CategorySummaryDto
             {
-                CategoryName = categoryMap.GetValueOrDefault(g.Key) ?? g.Key,
-                ProductCount = g.Count()
+                CategoryName = categoryMap.GetValueOrDefault(g.CategoryId) ?? g.CategoryId,
+                ProductCount = g.Count
             })
             .OrderByDescending(x => x.ProductCount)
             .ToList();
 
         return new DashboardSummaryDto
         {
-            TotalProducts = totalCount,
-            TotalStockValue = totalStockValue,
+            TotalProducts = await totalCountTask,
+            TotalStockValue = await totalValueTask,
             LowStockProducts = lowStockDtos,
             ProductsByCategory = productsByCategory
         };
