@@ -1,8 +1,10 @@
 using Hypesoft.Application.Commands.Products;
 using Hypesoft.Application.Queries.Products;
+using Hypesoft.API.Extensions;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Hypesoft.API.Controllers;
 
@@ -21,6 +23,7 @@ public sealed class ProductsController : ControllerBase
     /// <summary>Creates a new product.</summary>
     [HttpPost]
     [Authorize(Roles = "admin")]
+    [EnableRateLimiting(RateLimitingExtensions.WritesPolicy)]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -61,6 +64,7 @@ public sealed class ProductsController : ControllerBase
     /// <summary>Updates an existing product.</summary>
     [HttpPut("{id}")]
     [Authorize(Roles = "admin")]
+    [EnableRateLimiting(RateLimitingExtensions.WritesPolicy)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -75,6 +79,7 @@ public sealed class ProductsController : ControllerBase
     /// <summary>Updates only the stock quantity of a product.</summary>
     [HttpPatch("{id}/stock")]
     [Authorize(Roles = "admin")]
+    [EnableRateLimiting(RateLimitingExtensions.WritesPolicy)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -89,6 +94,7 @@ public sealed class ProductsController : ControllerBase
     /// <summary>Deletes a product by ID.</summary>
     [HttpDelete("{id}")]
     [Authorize(Roles = "admin")]
+    [EnableRateLimiting(RateLimitingExtensions.WritesPolicy)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]

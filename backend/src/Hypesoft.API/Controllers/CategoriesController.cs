@@ -1,8 +1,10 @@
 using Hypesoft.Application.Commands.Categories;
 using Hypesoft.Application.Queries.Categories;
+using Hypesoft.API.Extensions;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Hypesoft.API.Controllers;
 
@@ -21,6 +23,7 @@ public sealed class CategoriesController : ControllerBase
     /// <summary>Creates a new category.</summary>
     [HttpPost]
     [Authorize(Roles = "admin")]
+    [EnableRateLimiting(RateLimitingExtensions.WritesPolicy)]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -55,6 +58,7 @@ public sealed class CategoriesController : ControllerBase
     /// <summary>Updates an existing category.</summary>
     [HttpPut("{id}")]
     [Authorize(Roles = "admin")]
+    [EnableRateLimiting(RateLimitingExtensions.WritesPolicy)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -69,6 +73,7 @@ public sealed class CategoriesController : ControllerBase
     /// <summary>Deletes a category. Fails with 400 if the category has associated products.</summary>
     [HttpDelete("{id}")]
     [Authorize(Roles = "admin")]
+    [EnableRateLimiting(RateLimitingExtensions.WritesPolicy)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
