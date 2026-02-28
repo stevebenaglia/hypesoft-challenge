@@ -4,7 +4,6 @@ using Hypesoft.Application.Interfaces;
 using Hypesoft.Application.Queries.Categories;
 using Hypesoft.Domain.Repositories;
 using MediatR;
-using Microsoft.Extensions.Caching.Memory;
 
 namespace Hypesoft.Application.Handlers.Categories;
 
@@ -14,9 +13,9 @@ public sealed class GetCategoriesHandler : IRequestHandler<GetCategoriesQuery, I
 
     private readonly ICategoryRepository _categoryRepository;
     private readonly IMapper _mapper;
-    private readonly IMemoryCache _cache;
+    private readonly ICacheService _cache;
 
-    public GetCategoriesHandler(ICategoryRepository categoryRepository, IMapper mapper, IMemoryCache cache)
+    public GetCategoriesHandler(ICategoryRepository categoryRepository, IMapper mapper, ICacheService cache)
     {
         _categoryRepository = categoryRepository;
         _mapper = mapper;
@@ -25,13 +24,14 @@ public sealed class GetCategoriesHandler : IRequestHandler<GetCategoriesQuery, I
 
     public async Task<IEnumerable<CategoryDto>> Handle(GetCategoriesQuery request, CancellationToken cancellationToken)
     {
-        if (_cache.TryGetValue(CacheKeys.AllCategories, out IEnumerable<CategoryDto>? cached))
-            return cached!;
+        var cached = await _cache.GetAsync<IEnumerable<CategoryDto>>(CacheKeys.AllCategories, cancellationToken);
+        if (cached is not null)
+            return cached;
 
         var categories = await _categoryRepository.GetAllAsync(cancellationToken);
         var dtos = _mapper.Map<IEnumerable<CategoryDto>>(categories);
 
-        _cache.Set(CacheKeys.AllCategories, dtos, CacheDuration);
+        await _cache.SetAsync(CacheKeys.AllCategories, dtos, CacheDuration, cancellationToken);
 
         return dtos;
     }

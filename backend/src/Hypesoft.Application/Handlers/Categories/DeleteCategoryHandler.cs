@@ -5,7 +5,6 @@ using Hypesoft.Domain.DomainEvents.Categories;
 using Hypesoft.Domain.Exceptions;
 using Hypesoft.Domain.Repositories;
 using MediatR;
-using Microsoft.Extensions.Caching.Memory;
 
 namespace Hypesoft.Application.Handlers.Categories;
 
@@ -14,9 +13,13 @@ public sealed class DeleteCategoryHandler : IRequestHandler<DeleteCategoryComman
     private readonly ICategoryRepository _categoryRepository;
     private readonly IProductRepository _productRepository;
     private readonly IPublisher _publisher;
-    private readonly IMemoryCache _cache;
+    private readonly ICacheService _cache;
 
-    public DeleteCategoryHandler(ICategoryRepository categoryRepository, IProductRepository productRepository, IPublisher publisher, IMemoryCache cache)
+    public DeleteCategoryHandler(
+        ICategoryRepository categoryRepository,
+        IProductRepository productRepository,
+        IPublisher publisher,
+        ICacheService cache)
     {
         _categoryRepository = categoryRepository;
         _productRepository = productRepository;
@@ -35,7 +38,7 @@ public sealed class DeleteCategoryHandler : IRequestHandler<DeleteCategoryComman
 
         await _categoryRepository.DeleteAsync(category, cancellationToken);
 
-        _cache.Remove(CacheKeys.AllCategories);
+        await _cache.RemoveAsync(CacheKeys.AllCategories, cancellationToken);
 
         await _publisher.Publish(
             new DomainEventNotification<CategoryDeletedEvent>(

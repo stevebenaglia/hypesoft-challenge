@@ -8,7 +8,6 @@ using Hypesoft.Domain.Entities;
 using Hypesoft.Domain.Repositories;
 using Hypesoft.Domain.Services;
 using MediatR;
-using Microsoft.Extensions.Caching.Memory;
 
 namespace Hypesoft.Application.Handlers.Categories;
 
@@ -18,14 +17,14 @@ public sealed class CreateCategoryHandler : IRequestHandler<CreateCategoryComman
     private readonly IIdGenerator _idGenerator;
     private readonly IMapper _mapper;
     private readonly IPublisher _publisher;
-    private readonly IMemoryCache _cache;
+    private readonly ICacheService _cache;
 
     public CreateCategoryHandler(
         ICategoryRepository categoryRepository,
         IIdGenerator idGenerator,
         IMapper mapper,
         IPublisher publisher,
-        IMemoryCache cache)
+        ICacheService cache)
     {
         _categoryRepository = categoryRepository;
         _idGenerator = idGenerator;
@@ -40,7 +39,7 @@ public sealed class CreateCategoryHandler : IRequestHandler<CreateCategoryComman
 
         await _categoryRepository.AddAsync(category, cancellationToken);
 
-        _cache.Remove(CacheKeys.AllCategories);
+        await _cache.RemoveAsync(CacheKeys.AllCategories, cancellationToken);
 
         await _publisher.Publish(
             new DomainEventNotification<CategoryCreatedEvent>(
