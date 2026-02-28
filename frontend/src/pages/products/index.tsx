@@ -1,15 +1,17 @@
 import type { GetServerSideProps } from "next";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { getServerSession } from "next-auth";
 import { useSession } from "next-auth/react";
 import { authOptions } from "@/pages/api/auth/[...nextauth]";
 import { apiFetch } from "@/lib/apiFetch";
 import Header from "@/components/layout/Header";
 import UpdateStockModal from "@/components/stock/UpdateStockModal";
-import type { Product, PagedResult } from "@/types/api";
+import ProductFormModal from "@/components/products/ProductFormModal";
+import type { Product, Category, PagedResult } from "@/types/api";
 
 interface ProductsPageProps {
-  initialData: PagedResult<Product>;
+  initialProducts: Product[];
+  categories: Category[];
   error?: string;
 }
 
@@ -26,16 +28,72 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
-export default function ProductsPage({ initialData, error }: ProductsPageProps) {
+type ModalState =
+  | { type: "none" }
+  | { type: "create" }
+  | { type: "edit"; product: Product }
+  | { type: "stock"; product: Product }
+  | { type: "delete"; product: Product };
+
+export default function ProductsPage({
+  initialProducts,
+  categories,
+  error,
+}: ProductsPageProps) {
   const { data: session } = useSession();
-  const [products, setProducts] = useState<Product[]>(initialData.data);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [modal, setModal] = useState<ModalState>({ type: "none" });
+  const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const isAdmin = session?.user.roles.includes("admin");
 
-  function handleStockUpdated(updated: Product) {
-    setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
-    setSelectedProduct(null);
+  const filtered = useMemo(() => {
+    return products.filter((p) => {
+      const matchesSearch = p.name
+        .toLowerCase()
+        .includes(search.toLowerCase());
+      const matchesCategory =
+        !categoryFilter || p.categoryId === categoryFilter;
+      return matchesSearch && matchesCategory;
+    });
+  }, [products, search, categoryFilter]);
+
+  function handleCreated(product: Product) {
+    setProducts((prev) => [product, ...prev]);
+    setModal({ type: "none" });
+  }
+
+  function handleUpdated(product: Product) {
+    setProducts((prev) => prev.map((p) => (p.id === product.id ? product : p)));
+    setModal({ type: "none" });
+  }
+
+  function handleStockUpdated(product: Product) {
+    setProducts((prev) => prev.map((p) => (p.id === product.id ? product : p)));
+    setModal({ type: "none" });
+  }
+
+  async function handleDelete() {
+    if (modal.type !== "delete") return;
+    setDeleteLoading(true);
+    setDeleteError(null);
+    try {
+      await apiFetch(`/api/products/${modal.product.id}`, {
+        method: "DELETE",
+        accessToken: session?.accessToken,
+      });
+      setProducts((prev) => prev.filter((p) => p.id !== modal.product.id));
+      setModal({ type: "none" });
+    } catch (err: unknown) {
+      setDeleteError(
+        err instanceof Error ? err.message : "Erro ao excluir produto."
+      );
+    } finally {
+      setDeleteLoading(false);
+    }
   }
 
   return (
@@ -43,19 +101,51 @@ export default function ProductsPage({ initialData, error }: ProductsPageProps) 
       <Header />
 
       <main className="mx-auto max-w-6xl px-6 py-8">
+        {/* Header da pagina */}
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
             Produtos
           </h1>
-          <p className="text-sm text-zinc-500">
-            {initialData.totalRecords} produto(s) encontrado(s)
+          {isAdmin && (
+            <button
+              onClick={() => setModal({ type: "create" })}
+              className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+            >
+              + Novo Produto
+            </button>
+          )}
+        </div>
+
+        {/* Filtros */}
+        <div className="mb-5 flex flex-col gap-3 sm:flex-row">
+          <input
+            type="text"
+            placeholder="Buscar por nome..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-50 sm:max-w-xs"
+          />
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-50 sm:max-w-xs"
+          >
+            <option value="">Todas as categorias</option>
+            {categories.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.name}
+              </option>
+            ))}
+          </select>
+          <p className="self-center text-sm text-zinc-400">
+            {filtered.length} produto(s)
           </p>
         </div>
 
         {error ? (
           <p className="text-sm text-red-500">{error}</p>
-        ) : products.length === 0 ? (
-          <p className="text-sm text-zinc-400">Nenhum produto cadastrado.</p>
+        ) : filtered.length === 0 ? (
+          <p className="text-sm text-zinc-400">Nenhum produto encontrado.</p>
         ) : (
           <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
             <table className="min-w-full divide-y divide-zinc-100 dark:divide-zinc-700">
@@ -81,7 +171,7 @@ export default function ProductsPage({ initialData, error }: ProductsPageProps) 
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100 dark:divide-zinc-700">
-                {products.map((product) => (
+                {filtered.map((product) => (
                   <tr
                     key={product.id}
                     className="hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
@@ -111,12 +201,32 @@ export default function ProductsPage({ initialData, error }: ProductsPageProps) 
                     </td>
                     {isAdmin && (
                       <td className="px-6 py-4 text-right">
-                        <button
-                          onClick={() => setSelectedProduct(product)}
-                          className="rounded-md bg-zinc-100 px-3 py-1.5 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-200 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600"
-                        >
-                          Atualizar Estoque
-                        </button>
+                        <div className="flex justify-end gap-2">
+                          <button
+                            onClick={() =>
+                              setModal({ type: "stock", product })
+                            }
+                            className="rounded-md bg-zinc-100 px-3 py-1.5 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-200 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600"
+                          >
+                            Estoque
+                          </button>
+                          <button
+                            onClick={() =>
+                              setModal({ type: "edit", product })
+                            }
+                            className="rounded-md bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            onClick={() =>
+                              setModal({ type: "delete", product })
+                            }
+                            className="rounded-md bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 transition-colors hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50"
+                          >
+                            Excluir
+                          </button>
+                        </div>
                       </td>
                     )}
                   </tr>
@@ -127,12 +237,71 @@ export default function ProductsPage({ initialData, error }: ProductsPageProps) 
         )}
       </main>
 
-      {selectedProduct && (
+      {/* Modal: Criar produto */}
+      {modal.type === "create" && (
+        <ProductFormModal
+          categories={categories}
+          onClose={() => setModal({ type: "none" })}
+          onSuccess={handleCreated}
+        />
+      )}
+
+      {/* Modal: Editar produto */}
+      {modal.type === "edit" && (
+        <ProductFormModal
+          product={modal.product}
+          categories={categories}
+          onClose={() => setModal({ type: "none" })}
+          onSuccess={handleUpdated}
+        />
+      )}
+
+      {/* Modal: Atualizar estoque */}
+      {modal.type === "stock" && (
         <UpdateStockModal
-          product={selectedProduct}
-          onClose={() => setSelectedProduct(null)}
+          product={modal.product}
+          onClose={() => setModal({ type: "none" })}
           onSuccess={handleStockUpdated}
         />
+      )}
+
+      {/* Modal: Confirmar exclusao */}
+      {modal.type === "delete" && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          onClick={(e) => e.target === e.currentTarget && setModal({ type: "none" })}
+        >
+          <div className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-6 shadow-xl dark:border-zinc-700 dark:bg-zinc-800">
+            <h2 className="mb-2 text-base font-semibold text-zinc-900 dark:text-zinc-50">
+              Excluir produto
+            </h2>
+            <p className="mb-5 text-sm text-zinc-500">
+              Tem certeza que deseja excluir{" "}
+              <span className="font-medium text-zinc-700 dark:text-zinc-300">
+                {modal.product.name}
+              </span>
+              ? Esta ação não pode ser desfeita.
+            </p>
+            {deleteError && (
+              <p className="mb-3 text-xs text-red-500">{deleteError}</p>
+            )}
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setModal({ type: "none" })}
+                className="rounded-lg px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleteLoading}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                {deleteLoading ? "Excluindo..." : "Excluir"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -146,22 +315,27 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   }
 
   try {
-    const data = await apiFetch<PagedResult<Product>>(
-      "/api/products?pageSize=100",
-      { accessToken: session.accessToken }
-    );
-    return { props: { initialData: data } };
+    const [productsData, categories] = await Promise.all([
+      apiFetch<PagedResult<Product>>("/api/products?pageSize=100", {
+        accessToken: session.accessToken,
+      }),
+      apiFetch<Category[]>("/api/categories", {
+        accessToken: session.accessToken,
+      }),
+    ]);
+
+    return {
+      props: {
+        initialProducts: productsData.data,
+        categories,
+      },
+    };
   } catch (err: unknown) {
     return {
       props: {
-        initialData: {
-          data: [],
-          pageNumber: 1,
-          pageSize: 100,
-          totalPages: 0,
-          totalRecords: 0,
-        },
-        error: err instanceof Error ? err.message : "Erro ao carregar produtos.",
+        initialProducts: [],
+        categories: [],
+        error: err instanceof Error ? err.message : "Erro ao carregar dados.",
       },
     };
   }
