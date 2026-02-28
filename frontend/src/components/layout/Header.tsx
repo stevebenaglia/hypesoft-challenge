@@ -27,6 +27,11 @@ export default function Header() {
             <Link href="/products" className={navLink("/products", "Produtos")}>
               Produtos
             </Link>
+            {isAdmin && (
+              <Link href="/categories" className={navLink("/categories", "Categorias")}>
+                Categorias
+              </Link>
+            )}
           </nav>
         </div>
 
