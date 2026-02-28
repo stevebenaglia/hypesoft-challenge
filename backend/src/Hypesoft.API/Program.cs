@@ -4,6 +4,7 @@ using Hypesoft.API.Filters;
 using Hypesoft.API.Middlewares;
 using Hypesoft.Infrastructure.Configurations;
 using Hypesoft.Infrastructure.Data;
+using Microsoft.AspNetCore.ResponseCompression;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -33,6 +34,20 @@ builder.Services.AddSwaggerWithJwt();
 // CORS
 builder.Services.AddFrontendCors();
 
+// Health Checks
+builder.Services.AddAppHealthChecks(builder.Configuration);
+
+// Rate Limiting
+builder.Services.AddAppRateLimiting();
+
+// Response Compression
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+});
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
@@ -41,14 +56,19 @@ using (var scope = app.Services.CreateScope())
     await db.Database.EnsureCreatedAsync();
 }
 
+app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+app.UseResponseCompression();
 
 app.UseSwagger();
 app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Hypesoft API v1"));
 
 app.UseCors(CorsExtensions.FrontendPolicy);
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapAppHealthChecks();
 
 app.Run();
