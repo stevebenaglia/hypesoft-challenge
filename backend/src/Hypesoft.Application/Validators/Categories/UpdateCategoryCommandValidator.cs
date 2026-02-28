@@ -14,6 +14,7 @@ public sealed class UpdateCategoryCommandValidator : AbstractValidator<UpdateCat
         RuleFor(x => x.Name)
             .NotEmpty().WithMessage("Name is required.")
             .MaximumLength(100).WithMessage("Name must not exceed 100 characters.")
+            .Matches(@"^[^<>]*$").WithMessage("Name must not contain HTML tags.")
             .MustAsync(async (cmd, name, ct) => !await categoryRepository.ExistsByNameAsync(name, cmd.Id, ct))
             .WithMessage("A category with this name already exists.");
 
