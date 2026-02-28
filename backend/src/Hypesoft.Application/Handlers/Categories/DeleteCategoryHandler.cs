@@ -1,9 +1,11 @@
 using Hypesoft.Application.Commands.Categories;
 using Hypesoft.Application.DomainEvents;
+using Hypesoft.Application.Interfaces;
 using Hypesoft.Domain.DomainEvents.Categories;
 using Hypesoft.Domain.Exceptions;
 using Hypesoft.Domain.Repositories;
 using MediatR;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Hypesoft.Application.Handlers.Categories;
 
@@ -12,12 +14,14 @@ public sealed class DeleteCategoryHandler : IRequestHandler<DeleteCategoryComman
     private readonly ICategoryRepository _categoryRepository;
     private readonly IProductRepository _productRepository;
     private readonly IPublisher _publisher;
+    private readonly IMemoryCache _cache;
 
-    public DeleteCategoryHandler(ICategoryRepository categoryRepository, IProductRepository productRepository, IPublisher publisher)
+    public DeleteCategoryHandler(ICategoryRepository categoryRepository, IProductRepository productRepository, IPublisher publisher, IMemoryCache cache)
     {
         _categoryRepository = categoryRepository;
         _productRepository = productRepository;
         _publisher = publisher;
+        _cache = cache;
     }
 
     public async Task<Unit> Handle(DeleteCategoryCommand request, CancellationToken cancellationToken)
@@ -30,6 +34,8 @@ public sealed class DeleteCategoryHandler : IRequestHandler<DeleteCategoryComman
             throw new DomainException($"Category '{category.Name}' cannot be deleted because it has associated products.");
 
         await _categoryRepository.DeleteAsync(category, cancellationToken);
+
+        _cache.Remove(CacheKeys.AllCategories);
 
         await _publisher.Publish(
             new DomainEventNotification<CategoryDeletedEvent>(

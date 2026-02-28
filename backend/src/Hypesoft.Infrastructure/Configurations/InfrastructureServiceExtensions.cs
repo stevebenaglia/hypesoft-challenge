@@ -31,6 +31,8 @@ public static class InfrastructureServiceExtensions
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
 
+        services.AddMemoryCache();
+
         return services;
     }
 }

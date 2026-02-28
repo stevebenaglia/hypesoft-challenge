@@ -2,11 +2,13 @@ using AutoMapper;
 using Hypesoft.Application.Commands.Categories;
 using Hypesoft.Application.DomainEvents;
 using Hypesoft.Application.DTOs;
+using Hypesoft.Application.Interfaces;
 using Hypesoft.Domain.DomainEvents.Categories;
 using Hypesoft.Domain.Entities;
 using Hypesoft.Domain.Repositories;
 using Hypesoft.Domain.Services;
 using MediatR;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Hypesoft.Application.Handlers.Categories;
 
@@ -16,17 +18,20 @@ public sealed class CreateCategoryHandler : IRequestHandler<CreateCategoryComman
     private readonly IIdGenerator _idGenerator;
     private readonly IMapper _mapper;
     private readonly IPublisher _publisher;
+    private readonly IMemoryCache _cache;
 
     public CreateCategoryHandler(
         ICategoryRepository categoryRepository,
         IIdGenerator idGenerator,
         IMapper mapper,
-        IPublisher publisher)
+        IPublisher publisher,
+        IMemoryCache cache)
     {
         _categoryRepository = categoryRepository;
         _idGenerator = idGenerator;
         _mapper = mapper;
         _publisher = publisher;
+        _cache = cache;
     }
 
     public async Task<CategoryDto> Handle(CreateCategoryCommand request, CancellationToken cancellationToken)
@@ -34,6 +39,8 @@ public sealed class CreateCategoryHandler : IRequestHandler<CreateCategoryComman
         var category = Category.Create(_idGenerator.NewId(), request.Name, request.Description);
 
         await _categoryRepository.AddAsync(category, cancellationToken);
+
+        _cache.Remove(CacheKeys.AllCategories);
 
         await _publisher.Publish(
             new DomainEventNotification<CategoryCreatedEvent>(
