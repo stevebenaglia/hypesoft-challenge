@@ -1,8 +1,11 @@
 using AutoMapper;
 using Hypesoft.Application.Commands.Products;
+using Hypesoft.Application.DomainEvents;
 using Hypesoft.Application.DTOs;
+using Hypesoft.Domain.DomainEvents.Products;
 using Hypesoft.Domain.Exceptions;
 using Hypesoft.Domain.Repositories;
+using Hypesoft.Domain.ValueObjects;
 using MediatR;
 
 namespace Hypesoft.Application.Handlers.Products;
@@ -12,15 +15,18 @@ public sealed class UpdateProductHandler : IRequestHandler<UpdateProductCommand,
     private readonly IProductRepository _productRepository;
     private readonly ICategoryRepository _categoryRepository;
     private readonly IMapper _mapper;
+    private readonly IPublisher _publisher;
 
     public UpdateProductHandler(
         IProductRepository productRepository,
         ICategoryRepository categoryRepository,
-        IMapper mapper)
+        IMapper mapper,
+        IPublisher publisher)
     {
         _productRepository = productRepository;
         _categoryRepository = categoryRepository;
         _mapper = mapper;
+        _publisher = publisher;
     }
 
     public async Task<ProductDto> Handle(UpdateProductCommand request, CancellationToken cancellationToken)
@@ -33,14 +39,18 @@ public sealed class UpdateProductHandler : IRequestHandler<UpdateProductCommand,
             ? request.CategoryId
             : product.CategoryId;
 
-        product.Update(
-            request.Name,
-            request.Description,
-            request.Price,
-            request.StockQuantity,
-            effectiveCategoryId);
+        var name = ProductName.Create(request.Name);
+        var price = Money.Create(request.Price);
+        var stock = StockQuantity.Create(request.StockQuantity);
+
+        product.Update(name, request.Description, price, stock, effectiveCategoryId);
 
         await _productRepository.UpdateAsync(product, cancellationToken);
+
+        await _publisher.Publish(
+            new DomainEventNotification<ProductUpdatedEvent>(
+                new ProductUpdatedEvent(product.Id, product.Name, product.Price, product.StockQuantity, product.CategoryId)),
+            cancellationToken);
 
         var dto = _mapper.Map<ProductDto>(product);
 

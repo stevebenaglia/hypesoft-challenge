@@ -1,3 +1,5 @@
+using Hypesoft.Domain.ValueObjects;
+
 namespace Hypesoft.Domain.Entities;
 
 public sealed class Product
@@ -12,31 +14,31 @@ public sealed class Product
     /// <summary>Required by EF Core for materialization.</summary>
     private Product() { }
 
-    public static Product Create(string id, string name, string? description, decimal price, int stockQuantity, string categoryId)
+    public static Product Create(string id, ProductName name, string? description, Money price, StockQuantity stockQuantity, string categoryId)
     {
         return new Product
         {
             Id = id,
-            Name = name,
+            Name = name.Value,
             Description = description,
-            Price = price,
-            StockQuantity = stockQuantity,
+            Price = price.Amount,
+            StockQuantity = stockQuantity.Value,
             CategoryId = categoryId
         };
     }
 
-    public void Update(string name, string? description, decimal price, int stockQuantity, string categoryId)
+    public void Update(ProductName name, string? description, Money price, StockQuantity stockQuantity, string categoryId)
     {
-        Name = name;
+        Name = name.Value;
         Description = description;
-        Price = price;
-        StockQuantity = stockQuantity;
+        Price = price.Amount;
+        StockQuantity = stockQuantity.Value;
         CategoryId = categoryId;
     }
 
-    public void UpdateStock(int quantity)
+    public void UpdateStock(StockQuantity quantity)
     {
-        StockQuantity = quantity;
+        StockQuantity = quantity.Value;
     }
 
     public bool IsLowStock() => StockQuantity < 10;
