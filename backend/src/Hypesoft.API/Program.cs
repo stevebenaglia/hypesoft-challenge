@@ -3,6 +3,7 @@ using Hypesoft.API.Extensions;
 using Hypesoft.API.Filters;
 using Hypesoft.API.Middlewares;
 using Hypesoft.Infrastructure.Configurations;
+using Hypesoft.Infrastructure.Data;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -33,6 +34,12 @@ builder.Services.AddSwaggerWithJwt();
 builder.Services.AddFrontendCors();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    await db.Database.EnsureCreatedAsync();
+}
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
