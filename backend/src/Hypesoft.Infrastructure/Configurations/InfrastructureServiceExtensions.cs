@@ -1,3 +1,4 @@
+using Hypesoft.Application.Interfaces;
 using Hypesoft.Domain.Repositories;
 using Hypesoft.Domain.Services;
 using Hypesoft.Infrastructure.Data;
@@ -26,6 +27,9 @@ public static class InfrastructureServiceExtensions
         services.AddScoped<IProductRepository, ProductRepository>();
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddSingleton<IIdGenerator, ObjectIdGenerator>();
+
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICurrentUserService, CurrentUserService>();
 
         return services;
     }
