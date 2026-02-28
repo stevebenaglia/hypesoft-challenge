@@ -1,11 +1,11 @@
 using Hypesoft.Application.Extensions;
 using Hypesoft.API.Extensions;
-using Hypesoft.API.Filters;
 using Hypesoft.API.Middlewares;
 using Hypesoft.Infrastructure.Configurations;
 using Hypesoft.Infrastructure.Data;
 using Microsoft.AspNetCore.ResponseCompression;
 using Serilog;
+using Serilog.Formatting.Compact;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,7 +16,8 @@ builder.WebHost.ConfigureKestrel(options =>
 builder.Host.UseSerilog((ctx, lc) => lc
     .ReadFrom.Configuration(ctx.Configuration)
     .Enrich.FromLogContext()
-    .WriteTo.Console());
+    .Enrich.WithProperty("Application", "Hypesoft.API")
+    .WriteTo.Console(new CompactJsonFormatter()));
 
 // Application layers
 builder.Services.AddApplicationServices();
@@ -26,10 +27,7 @@ builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.AddKeycloakAuthentication(builder.Configuration);
 
 // API
-builder.Services.AddControllers(options =>
-{
-    options.Filters.Add<RequestLoggingFilter>();
-});
+builder.Services.AddControllers();
 
 // Swagger
 builder.Services.AddSwaggerWithJwt();
@@ -62,6 +60,15 @@ using (var scope = app.Services.CreateScope())
 app.UseMiddleware<SecurityHeadersMiddleware>();
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+app.UseSerilogRequestLogging(options =>
+{
+    options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+    {
+        diagnosticContext.Set("User", httpContext.User.Identity?.Name ?? "anonymous");
+        diagnosticContext.Set("RemoteIp", httpContext.Connection.RemoteIpAddress?.ToString());
+    };
+});
 
 app.UseResponseCompression();
 
