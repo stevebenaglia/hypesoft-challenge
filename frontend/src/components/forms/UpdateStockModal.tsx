@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { productService } from "@/services/productService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,13 +48,20 @@ export default function UpdateStockModal({
     formState: { errors },
   } = useForm<StockFormData>({
     resolver: zodResolver(stockSchema),
+    mode: "onChange",
     defaultValues: { quantity: product.stockQuantity },
   });
 
   const mutation = useMutation({
     mutationFn: (data: StockFormData) =>
       productService.updateStock(product.id, data.quantity, session?.accessToken),
-    onSuccess,
+    onSuccess: (updated) => {
+      toast.success("Estoque atualizado com sucesso!");
+      onSuccess(updated);
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Erro ao atualizar estoque.");
+    },
   });
 
   return (
@@ -80,14 +88,6 @@ export default function UpdateStockModal({
               <p className="text-xs text-red-500">{errors.quantity.message}</p>
             )}
           </div>
-
-          {mutation.error && (
-            <p className="text-xs text-red-500">
-              {mutation.error instanceof Error
-                ? mutation.error.message
-                : "Erro ao atualizar estoque."}
-            </p>
-          )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>

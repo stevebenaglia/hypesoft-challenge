@@ -25,6 +25,7 @@ import ProductFormModal from "@/components/forms/ProductFormModal";
 import UpdateStockModal from "@/components/forms/UpdateStockModal";
 import { useDeleteProduct } from "@/hooks/useProductMutations";
 import { formatCurrency, stockBadgeVariant } from "@/utils/formatters";
+import { toast } from "sonner";
 import type { Product, Category } from "@/types/api";
 
 interface ProductsClientProps {
@@ -65,9 +66,13 @@ export default function ProductsClient({
 
   const deleteMutation = useDeleteProduct({
     onSuccess: (deletedId) => {
+      toast.success("Produto excluído com sucesso!");
       setProducts((prev) => prev.filter((p) => p.id !== deletedId));
       setModal({ type: "none" });
       router.refresh();
+    },
+    onError: (error: Error) => {
+      toast.error(error.message ?? "Erro ao excluir produto.");
     },
   });
 
@@ -133,7 +138,7 @@ export default function ProductsClient({
       ) : filtered.length === 0 ? (
         <p className="text-sm text-zinc-400">Nenhum produto encontrado.</p>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
           <table className="min-w-full divide-y divide-zinc-100 dark:divide-zinc-700">
             <thead>
               <tr className="bg-zinc-50 dark:bg-zinc-900">
@@ -257,13 +262,6 @@ export default function ProductsClient({
               ? Esta ação não pode ser desfeita.
             </DialogDescription>
           </DialogHeader>
-          {deleteMutation.error && (
-            <p className="text-xs text-red-500">
-              {deleteMutation.error instanceof Error
-                ? deleteMutation.error.message
-                : "Erro ao excluir produto."}
-            </p>
-          )}
           <DialogFooter>
             <Button
               variant="outline"

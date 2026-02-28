@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import CategoryFormModal from "@/components/forms/CategoryFormModal";
 import { useDeleteCategory } from "@/hooks/useCategoryMutations";
+import { toast } from "sonner";
 import type { Category } from "@/types/api";
 
 interface CategoriesClientProps {
@@ -40,9 +41,13 @@ export default function CategoriesClient({
 
   const deleteMutation = useDeleteCategory({
     onSuccess: (deletedId) => {
+      toast.success("Categoria excluída com sucesso!");
       setCategories((prev) => prev.filter((c) => c.id !== deletedId));
       setModal({ type: "none" });
       router.refresh();
+    },
+    onError: (error: Error) => {
+      toast.error(error.message ?? "Erro ao excluir categoria.");
     },
   });
 
@@ -78,7 +83,7 @@ export default function CategoriesClient({
       ) : categories.length === 0 ? (
         <p className="text-sm text-zinc-400">Nenhuma categoria cadastrada.</p>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+        <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
           <table className="min-w-full divide-y divide-zinc-100 dark:divide-zinc-700">
             <thead>
               <tr className="bg-zinc-50 dark:bg-zinc-900">
@@ -166,13 +171,6 @@ export default function CategoriesClient({
               ? Categorias com produtos associados não podem ser excluídas.
             </DialogDescription>
           </DialogHeader>
-          {deleteMutation.error && (
-            <p className="text-xs text-red-500">
-              {deleteMutation.error instanceof Error
-                ? deleteMutation.error.message
-                : "Erro ao excluir categoria."}
-            </p>
-          )}
           <DialogFooter>
             <Button
               variant="outline"

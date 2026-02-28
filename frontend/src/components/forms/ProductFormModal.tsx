@@ -6,6 +6,7 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { productService } from "@/services/productService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,6 +67,7 @@ export default function ProductFormModal({
     formState: { errors },
   } = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
+    mode: "onChange",
     defaultValues: {
       name: product?.name ?? "",
       description: product?.description ?? "",
@@ -90,7 +92,13 @@ export default function ProductFormModal({
       isEditing
         ? productService.update(product!.id, data, session?.accessToken)
         : productService.create(data, session?.accessToken),
-    onSuccess,
+    onSuccess: (savedProduct) => {
+      toast.success(isEditing ? "Produto atualizado com sucesso!" : "Produto criado com sucesso!");
+      onSuccess(savedProduct);
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Erro ao salvar produto.");
+    },
   });
 
   return (
@@ -179,14 +187,6 @@ export default function ProductFormModal({
               <p className="text-xs text-red-500">{errors.categoryId.message}</p>
             )}
           </div>
-
-          {mutation.error && (
-            <p className="text-xs text-red-500">
-              {mutation.error instanceof Error
-                ? mutation.error.message
-                : "Erro ao salvar produto."}
-            </p>
-          )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>

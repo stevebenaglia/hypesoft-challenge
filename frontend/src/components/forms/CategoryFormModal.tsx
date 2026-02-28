@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { categoryService } from "@/services/categoryService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,6 +47,7 @@ export default function CategoryFormModal({
     formState: { errors },
   } = useForm<CategoryFormData>({
     resolver: zodResolver(categorySchema),
+    mode: "onChange",
     defaultValues: {
       name: category?.name ?? "",
       description: category?.description ?? "",
@@ -57,7 +59,13 @@ export default function CategoryFormModal({
       isEditing
         ? categoryService.update(category!.id, data, session?.accessToken)
         : categoryService.create(data, session?.accessToken),
-    onSuccess,
+    onSuccess: (savedCategory) => {
+      toast.success(isEditing ? "Categoria atualizada com sucesso!" : "Categoria criada com sucesso!");
+      onSuccess(savedCategory);
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Erro ao salvar categoria.");
+    },
   });
 
   return (
@@ -90,14 +98,6 @@ export default function CategoryFormModal({
               <p className="text-xs text-red-500">{errors.description.message}</p>
             )}
           </div>
-
-          {mutation.error && (
-            <p className="text-xs text-red-500">
-              {mutation.error instanceof Error
-                ? mutation.error.message
-                : "Erro ao salvar categoria."}
-            </p>
-          )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
