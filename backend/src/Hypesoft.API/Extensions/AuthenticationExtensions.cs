@@ -17,7 +17,7 @@ public static class AuthenticationExtensions
             .AddJwtBearer(options =>
             {
                 options.MetadataAddress = keycloakConfig["MetadataAddress"]!;
-                options.RequireHttpsMetadata = bool.Parse(keycloakConfig["RequireHttpsMetadata"] ?? "false");
+                options.RequireHttpsMetadata = bool.Parse(keycloakConfig["RequireHttpsMetadata"] ?? "true");
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
