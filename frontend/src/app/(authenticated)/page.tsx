@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { apiFetch } from "@/lib/apiFetch";
 import StatCard from "@/components/ui/StatCard";
 import { Badge } from "@/components/ui/badge";
+import { formatCurrency, stockBadgeVariant } from "@/utils/formatters";
 import type { DashboardSummary, Product } from "@/types/api";
 import dynamic from "next/dynamic";
 
@@ -10,18 +11,6 @@ const ProductsByCategoryChart = dynamic(
   () => import("@/components/charts/ProductsByCategoryChart"),
   { ssr: false }
 );
-
-function stockBadgeVariant(qty: number): "destructive" | "secondary" | "outline" {
-  if (qty === 0) return "destructive";
-  return "secondary";
-}
-
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(value);
-}
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);

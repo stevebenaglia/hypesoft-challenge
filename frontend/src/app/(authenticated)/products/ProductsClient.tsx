@@ -3,8 +3,6 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { useMutation } from "@tanstack/react-query";
-import { apiFetch } from "@/lib/apiFetch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -23,8 +21,10 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import ProductFormModal from "@/components/products/ProductFormModal";
-import UpdateStockModal from "@/components/stock/UpdateStockModal";
+import ProductFormModal from "@/components/forms/ProductFormModal";
+import UpdateStockModal from "@/components/forms/UpdateStockModal";
+import { useDeleteProduct } from "@/hooks/useProductMutations";
+import { formatCurrency, stockBadgeVariant } from "@/utils/formatters";
 import type { Product, Category } from "@/types/api";
 
 interface ProductsClientProps {
@@ -39,19 +39,6 @@ type ModalState =
   | { type: "edit"; product: Product }
   | { type: "stock"; product: Product }
   | { type: "delete"; product: Product };
-
-function stockBadgeVariant(qty: number): "destructive" | "secondary" | "outline" {
-  if (qty === 0) return "destructive";
-  if (qty < 10) return "secondary";
-  return "outline";
-}
-
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(value);
-}
 
 export default function ProductsClient({
   initialProducts,
@@ -76,16 +63,9 @@ export default function ProductsClient({
     });
   }, [products, search, categoryFilter]);
 
-  const deleteMutation = useMutation({
-    mutationFn: (productId: string) =>
-      apiFetch(`/api/products/${productId}`, {
-        method: "DELETE",
-        accessToken: session?.accessToken,
-      }),
-    onSuccess: () => {
-      if (modal.type === "delete") {
-        setProducts((prev) => prev.filter((p) => p.id !== modal.product.id));
-      }
+  const deleteMutation = useDeleteProduct({
+    onSuccess: (deletedId) => {
+      setProducts((prev) => prev.filter((p) => p.id !== deletedId));
       setModal({ type: "none" });
       router.refresh();
     },

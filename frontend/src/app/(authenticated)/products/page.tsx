@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { apiFetch } from "@/lib/apiFetch";
-import type { Product, Category, PagedResult } from "@/types/api";
+import { productService } from "@/services/productService";
+import { categoryService } from "@/services/categoryService";
 import ProductsClient from "./ProductsClient";
 
 export default async function ProductsPage() {
@@ -9,12 +9,8 @@ export default async function ProductsPage() {
 
   try {
     const [productsData, categories] = await Promise.all([
-      apiFetch<PagedResult<Product>>("/api/products?pageSize=100", {
-        accessToken: session!.accessToken,
-      }),
-      apiFetch<Category[]>("/api/categories", {
-        accessToken: session!.accessToken,
-      }),
+      productService.getAll(100, session!.accessToken),
+      categoryService.getAll(session!.accessToken),
     ]);
 
     return (

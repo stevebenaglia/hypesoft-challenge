@@ -3,8 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { useMutation } from "@tanstack/react-query";
-import { apiFetch } from "@/lib/apiFetch";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -14,7 +12,8 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import CategoryFormModal from "@/components/categories/CategoryFormModal";
+import CategoryFormModal from "@/components/forms/CategoryFormModal";
+import { useDeleteCategory } from "@/hooks/useCategoryMutations";
 import type { Category } from "@/types/api";
 
 interface CategoriesClientProps {
@@ -39,18 +38,9 @@ export default function CategoriesClient({
 
   const isAdmin = session?.user.roles.includes("admin");
 
-  const deleteMutation = useMutation({
-    mutationFn: (categoryId: string) =>
-      apiFetch(`/api/categories/${categoryId}`, {
-        method: "DELETE",
-        accessToken: session?.accessToken,
-      }),
-    onSuccess: () => {
-      if (modal.type === "delete") {
-        setCategories((prev) =>
-          prev.filter((c) => c.id !== modal.category.id)
-        );
-      }
+  const deleteMutation = useDeleteCategory({
+    onSuccess: (deletedId) => {
+      setCategories((prev) => prev.filter((c) => c.id !== deletedId));
       setModal({ type: "none" });
       router.refresh();
     },
