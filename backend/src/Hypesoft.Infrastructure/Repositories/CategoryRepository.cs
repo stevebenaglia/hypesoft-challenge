@@ -42,6 +42,14 @@ public sealed class CategoryRepository : ICategoryRepository
         await _context.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<IEnumerable<Category>> GetByIdsAsync(IEnumerable<string> ids, CancellationToken cancellationToken = default)
+    {
+        var idList = ids.ToList();
+        return await _context.Categories
+            .Where(c => idList.Contains(c.Id))
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<bool> ExistsAsync(string id, CancellationToken cancellationToken = default)
         => await _context.Categories.AnyAsync(c => c.Id == id, cancellationToken);
 

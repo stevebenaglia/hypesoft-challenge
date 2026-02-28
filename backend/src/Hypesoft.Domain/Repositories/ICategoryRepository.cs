@@ -6,6 +6,9 @@ public interface ICategoryRepository
 {
     Task<IEnumerable<Category>> GetAllAsync(CancellationToken cancellationToken = default);
     Task<Category?> GetByIdAsync(string id, CancellationToken cancellationToken = default);
+
+    /// <summary>Fetches multiple categories by id in a single query ($in operator).</summary>
+    Task<IEnumerable<Category>> GetByIdsAsync(IEnumerable<string> ids, CancellationToken cancellationToken = default);
     Task<Category> AddAsync(Category category, CancellationToken cancellationToken = default);
     Task UpdateAsync(Category category, CancellationToken cancellationToken = default);
     Task DeleteAsync(Category category, CancellationToken cancellationToken = default);

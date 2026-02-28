@@ -33,14 +33,11 @@ public sealed class GetProductsHandler : IRequestHandler<GetProductsQuery, Paged
 
         var dtos = _mapper.Map<IEnumerable<ProductDto>>(items).ToList();
 
-        // Enrich with category names in a single pass
+        // Enrich with category names using a single $in query instead of N individual lookups
         var categoryIds = dtos.Select(d => d.CategoryId).Distinct().ToList();
-        var categories = await Task.WhenAll(
-            categoryIds.Select(id => _categoryRepository.GetByIdAsync(id, cancellationToken)));
+        var categories = await _categoryRepository.GetByIdsAsync(categoryIds, cancellationToken);
 
-        var categoryMap = categories
-            .Where(c => c is not null)
-            .ToDictionary(c => c!.Id, c => c!.Name);
+        var categoryMap = categories.ToDictionary(c => c.Id, c => c.Name);
 
         foreach (var dto in dtos)
             dto.CategoryName = categoryMap.GetValueOrDefault(dto.CategoryId);

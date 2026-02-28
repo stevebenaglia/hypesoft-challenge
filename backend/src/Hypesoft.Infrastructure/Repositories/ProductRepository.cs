@@ -36,6 +36,7 @@ public sealed class ProductRepository : IProductRepository
         var totalCount = await query.CountAsync(cancellationToken);
 
         var items = await query
+            .OrderBy(p => p.Name)  // Consistent ordering prevents unstable pagination across pages
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);
