@@ -21,4 +21,7 @@ public interface IProductRepository
 
     /// <summary>Returns true if at least one product is associated with the given category.</summary>
     Task<bool> HasProductsInCategoryAsync(string categoryId, CancellationToken cancellationToken = default);
+
+    /// <summary>Returns products whose StockQuantity is below the given threshold.</summary>
+    Task<IEnumerable<Product>> GetLowStockAsync(int threshold = 10, CancellationToken cancellationToken = default);
 }

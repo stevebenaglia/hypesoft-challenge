@@ -72,6 +72,20 @@ public sealed class ProductsController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>Updates only the stock quantity of a product.</summary>
+    [HttpPatch("{id}/stock")]
+    [Authorize(Roles = "admin")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> UpdateStock(string id, [FromBody] UpdateStockCommand command, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(command with { Id = id }, cancellationToken);
+        return Ok(result);
+    }
+
     /// <summary>Deletes a product by ID.</summary>
     [HttpDelete("{id}")]
     [Authorize(Roles = "admin")]

@@ -34,5 +34,10 @@ public sealed class Product
         CategoryId = categoryId;
     }
 
+    public void UpdateStock(int quantity)
+    {
+        StockQuantity = quantity;
+    }
+
     public bool IsLowStock() => StockQuantity < 10;
 }

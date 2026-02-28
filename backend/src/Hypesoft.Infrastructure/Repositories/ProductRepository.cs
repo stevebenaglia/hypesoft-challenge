@@ -67,4 +67,10 @@ public sealed class ProductRepository : IProductRepository
 
     public async Task<bool> HasProductsInCategoryAsync(string categoryId, CancellationToken cancellationToken = default)
         => await _context.Products.AnyAsync(p => p.CategoryId == categoryId, cancellationToken);
+
+    public async Task<IEnumerable<Product>> GetLowStockAsync(int threshold = 10, CancellationToken cancellationToken = default)
+        => await _context.Products
+            .Where(p => p.StockQuantity < threshold)
+            .OrderBy(p => p.StockQuantity)
+            .ToListAsync(cancellationToken);
 }
