@@ -70,9 +70,9 @@ public sealed class ProductsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
-    public async Task<IActionResult> Update(string id, [FromBody] UpdateProductCommand command, CancellationToken cancellationToken)
+    public async Task<IActionResult> Update(string id, [FromBody] UpdateProductBody body, CancellationToken cancellationToken)
     {
-        var result = await _mediator.Send(command with { Id = id }, cancellationToken);
+        var result = await _mediator.Send(new UpdateProductCommand(id, body.Name, body.Description, body.Price, body.StockQuantity, body.CategoryId), cancellationToken);
         return Ok(result);
     }
 
@@ -85,11 +85,14 @@ public sealed class ProductsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
-    public async Task<IActionResult> UpdateStock(string id, [FromBody] UpdateStockCommand command, CancellationToken cancellationToken)
+    public async Task<IActionResult> UpdateStock(string id, [FromBody] UpdateStockBody body, CancellationToken cancellationToken)
     {
-        var result = await _mediator.Send(command with { Id = id }, cancellationToken);
+        var result = await _mediator.Send(new UpdateStockCommand(id, body.Quantity), cancellationToken);
         return Ok(result);
     }
+
+    public sealed record UpdateProductBody(string Name, string? Description, decimal Price, int StockQuantity, string? CategoryId);
+    public sealed record UpdateStockBody(int Quantity);
 
     /// <summary>Deletes a product by ID.</summary>
     [HttpDelete("{id}")]
