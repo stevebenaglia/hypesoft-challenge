@@ -80,21 +80,19 @@ public sealed class ProductRepository : IProductRepository
 
     public async Task<decimal> GetTotalStockValueAsync(CancellationToken cancellationToken = default)
     {
-        // MongoDB.EntityFrameworkCore 8.x does not support SumAsync with a selector expression.
-        // Project only the needed fields and compute the sum in memory.
-        var rows = await _context.Products
-            .Select(p => new { p.Price, p.StockQuantity })
-            .ToListAsync(cancellationToken);
-        return rows.Sum(p => p.Price * p.StockQuantity);
+        // MongoDB.EntityFrameworkCore 8.x does not support SumAsync with a selector expression
+        // or anonymous-type Select projections. Load products and aggregate in memory.
+        var products = await _context.Products.ToListAsync(cancellationToken);
+        return products.Sum(p => p.Price * p.StockQuantity);
     }
 
     public async Task<IEnumerable<(string CategoryId, int Count)>> GetCountByCategoryAsync(CancellationToken cancellationToken = default)
     {
-        var groups = await _context.Products
+        // MongoDB.EntityFrameworkCore 8.x does not support GroupBy with g.Key in LINQ translation.
+        // Load products and group in memory.
+        var products = await _context.Products.ToListAsync(cancellationToken);
+        return products
             .GroupBy(p => p.CategoryId)
-            .Select(g => new { CategoryId = g.Key, Count = g.Count() })
-            .ToListAsync(cancellationToken);
-
-        return groups.Select(g => (g.CategoryId, g.Count));
+            .Select(g => (CategoryId: g.Key, Count: g.Count()));
     }
 }
