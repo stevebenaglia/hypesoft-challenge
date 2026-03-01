@@ -33,8 +33,10 @@ export default function ProductsByCategoryChart({ data }: ProductsByCategoryChar
       {
         label: "Produtos",
         data: data.map((d) => d.productCount),
-        backgroundColor: "rgba(24, 24, 27, 0.8)",
-        borderRadius: 6,
+        backgroundColor: "rgba(124, 58, 237, 0.85)",
+        hoverBackgroundColor: "rgba(109, 40, 217, 0.95)",
+        borderRadius: 8,
+        borderSkipped: false as const,
       },
     ],
   };
@@ -43,15 +45,25 @@ export default function ProductsByCategoryChart({ data }: ProductsByCategoryChar
     responsive: true,
     plugins: {
       legend: { display: false },
+      tooltip: {
+        backgroundColor: "rgba(24, 24, 27, 0.9)",
+        titleColor: "#f4f4f5",
+        bodyColor: "#a1a1aa",
+        padding: 10,
+        cornerRadius: 8,
+      },
     },
     scales: {
       y: {
         beginAtZero: true,
-        ticks: { stepSize: 1 },
-        grid: { color: "rgba(0,0,0,0.05)" },
+        ticks: { stepSize: 1, color: "#a1a1aa" },
+        grid: { color: "rgba(161,161,170,0.1)" },
+        border: { display: false },
       },
       x: {
         grid: { display: false },
+        ticks: { color: "#a1a1aa" },
+        border: { display: false },
       },
     },
   };

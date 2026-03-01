@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import Header from "@/components/layout/Header";
+import Sidebar from "@/components/layout/Sidebar";
 
 export default async function AuthenticatedLayout({
   children,
@@ -15,9 +15,11 @@ export default async function AuthenticatedLayout({
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
-      <Header />
-      {children}
+    <div className="flex h-screen overflow-hidden bg-zinc-50 dark:bg-zinc-950">
+      <Sidebar />
+      <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
+        {children}
+      </main>
     </div>
   );
 }
