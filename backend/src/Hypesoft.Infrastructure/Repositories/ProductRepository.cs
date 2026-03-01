@@ -78,8 +78,15 @@ public sealed class ProductRepository : IProductRepository
     public Task<int> GetTotalCountAsync(CancellationToken cancellationToken = default)
         => _context.Products.CountAsync(cancellationToken);
 
-    public Task<decimal> GetTotalStockValueAsync(CancellationToken cancellationToken = default)
-        => _context.Products.SumAsync(p => p.Price * p.StockQuantity, cancellationToken);
+    public async Task<decimal> GetTotalStockValueAsync(CancellationToken cancellationToken = default)
+    {
+        // MongoDB.EntityFrameworkCore 8.x does not support SumAsync with a selector expression.
+        // Project only the needed fields and compute the sum in memory.
+        var rows = await _context.Products
+            .Select(p => new { p.Price, p.StockQuantity })
+            .ToListAsync(cancellationToken);
+        return rows.Sum(p => p.Price * p.StockQuantity);
+    }
 
     public async Task<IEnumerable<(string CategoryId, int Count)>> GetCountByCategoryAsync(CancellationToken cancellationToken = default)
     {
