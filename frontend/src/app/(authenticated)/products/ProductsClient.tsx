@@ -57,7 +57,10 @@ export default function ProductsClient({
 
   const filtered = useMemo(() => {
     return products.filter((p) => {
-      const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
+      const q = search.toLowerCase();
+      const matchesSearch =
+        p.name.toLowerCase().includes(q) ||
+        (p.categoryName ?? "").toLowerCase().includes(q);
       const matchesCategory =
         categoryFilter === "all" || p.categoryId === categoryFilter;
       return matchesSearch && matchesCategory;
@@ -110,7 +113,7 @@ export default function ProductsClient({
       {/* Filtros */}
       <div className="mb-5 flex flex-col gap-3 sm:flex-row">
         <Input
-          placeholder="Buscar por nome..."
+          placeholder="Buscar por nome ou categoria..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="sm:max-w-xs"
