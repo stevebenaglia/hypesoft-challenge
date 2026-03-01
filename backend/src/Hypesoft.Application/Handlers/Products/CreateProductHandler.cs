@@ -2,6 +2,7 @@ using AutoMapper;
 using Hypesoft.Application.Commands.Products;
 using Hypesoft.Application.DomainEvents;
 using Hypesoft.Application.DTOs;
+using Hypesoft.Application.Interfaces;
 using Hypesoft.Domain.DomainEvents.Products;
 using Hypesoft.Domain.Entities;
 using Hypesoft.Domain.Repositories;
@@ -18,19 +19,22 @@ public sealed class CreateProductHandler : IRequestHandler<CreateProductCommand,
     private readonly IIdGenerator _idGenerator;
     private readonly IMapper _mapper;
     private readonly IPublisher _publisher;
+    private readonly ICacheService _cache;
 
     public CreateProductHandler(
         IProductRepository productRepository,
         ICategoryRepository categoryRepository,
         IIdGenerator idGenerator,
         IMapper mapper,
-        IPublisher publisher)
+        IPublisher publisher,
+        ICacheService cache)
     {
         _productRepository = productRepository;
         _categoryRepository = categoryRepository;
         _idGenerator = idGenerator;
         _mapper = mapper;
         _publisher = publisher;
+        _cache = cache;
     }
 
     public async Task<ProductDto> Handle(CreateProductCommand request, CancellationToken cancellationToken)
@@ -48,6 +52,8 @@ public sealed class CreateProductHandler : IRequestHandler<CreateProductCommand,
             request.CategoryId);
 
         await _productRepository.AddAsync(product, cancellationToken);
+
+        await _cache.RemoveAsync(CacheKeys.DashboardSummary, cancellationToken);
 
         await _publisher.Publish(
             new DomainEventNotification<ProductCreatedEvent>(
