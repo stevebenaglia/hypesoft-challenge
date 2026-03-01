@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using MongoDB.Driver;
 
 namespace Hypesoft.API.Extensions;
 
@@ -18,7 +19,7 @@ public static class HealthCheckExtensions
 
         services.AddHealthChecks()
             .AddMongoDb(
-                connectionString,
+                _ => new MongoClient(connectionString),
                 name: "mongodb",
                 timeout: TimeSpan.FromSeconds(3),
                 tags: ["ready"]);
