@@ -5,12 +5,7 @@ import StatCard from "@/components/ui/StatCard";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, stockBadgeVariant } from "@/utils/formatters";
 import type { DashboardSummary, Product } from "@/types/api";
-import dynamic from "next/dynamic";
-
-const ProductsByCategoryChart = dynamic(
-  () => import("@/components/charts/ProductsByCategoryChart"),
-  { ssr: false }
-);
+import DashboardChart from "@/components/charts/DashboardChart";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -89,7 +84,7 @@ export default async function DashboardPage() {
               <h2 className="mb-4 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
                 Produtos por Categoria
               </h2>
-              <ProductsByCategoryChart data={summary.productsByCategory} />
+              <DashboardChart data={summary.productsByCategory} />
             </div>
           </div>
         </>
