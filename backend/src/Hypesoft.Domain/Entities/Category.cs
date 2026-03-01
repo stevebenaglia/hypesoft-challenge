@@ -15,13 +15,13 @@ public sealed class Category
         {
             Id = id,
             Name = name,
-            Description = description
+            Description = string.IsNullOrWhiteSpace(description) ? null : description
         };
     }
 
     public void Update(string name, string? description)
     {
         Name = name;
-        Description = description;
+        Description = string.IsNullOrWhiteSpace(description) ? null : description;
     }
 }

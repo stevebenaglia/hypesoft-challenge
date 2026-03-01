@@ -20,6 +20,7 @@ public sealed class UpdateCategoryCommandValidator : AbstractValidator<UpdateCat
 
         RuleFor(x => x.Description)
             .MaximumLength(500).WithMessage("Description must not exceed 500 characters.")
+            .Matches(@"^[^<>]*$").WithMessage("Description must not contain HTML tags.")
             .When(x => x.Description is not null);
     }
 }
