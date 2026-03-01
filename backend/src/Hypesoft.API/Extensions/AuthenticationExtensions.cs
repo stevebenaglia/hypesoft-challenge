@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Hypesoft.API.Authentication;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -25,7 +26,7 @@ public static class AuthenticationExtensions
                     ValidateAudience = true,
                     ValidAudience = keycloakConfig["Audience"],
                     ValidateLifetime = true,
-                    RoleClaimType = "roles"
+                    RoleClaimType = ClaimTypes.Role
                 };
             });
 
