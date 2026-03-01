@@ -61,8 +61,17 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.frontend
+    ports:
+      - "3000:3000"
     environment:
       - INTERNAL_API_URL=http://backend:5000
+      - NEXTAUTH_URL=http://localhost:3000
+      - NEXTAUTH_SECRET=supersecret-change-in-production-32chars
+      - KEYCLOAK_ID=hypesoft-frontend
+      - KEYCLOAK_SECRET=hypesoft-frontend-secret
+      - KEYCLOAK_ISSUER=http://localhost:8080/realms/hypesoft
+    extra_hosts:
+      - "localhost:host-gateway"
     depends_on:
       - backend
 
