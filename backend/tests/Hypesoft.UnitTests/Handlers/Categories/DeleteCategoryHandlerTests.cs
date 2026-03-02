@@ -17,13 +17,13 @@ public sealed class DeleteCategoryHandlerTests
     private readonly Mock<ICategoryRepository> _categoryRepoMock = new();
     private readonly Mock<IProductRepository> _productRepoMock = new();
     private readonly Mock<IPublisher> _publisherMock = new();
-    private readonly Mock<ICacheService> _cacheMock = new();
+    private readonly Mock<ICacheInvalidationService> _cacheInvalidationMock = new();
     private readonly DeleteCategoryHandler _handler;
 
     public DeleteCategoryHandlerTests()
     {
-        _cacheMock
-            .Setup(c => c.RemoveAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        _cacheInvalidationMock
+            .Setup(s => s.InvalidateCategoryMutationAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         _publisherMock
             .Setup(p => p.Publish(It.IsAny<INotification>(), It.IsAny<CancellationToken>()))
@@ -36,7 +36,7 @@ public sealed class DeleteCategoryHandlerTests
             _categoryRepoMock.Object,
             _productRepoMock.Object,
             _publisherMock.Object,
-            _cacheMock.Object);
+            _cacheInvalidationMock.Object);
     }
 
     [Fact]
@@ -86,7 +86,7 @@ public sealed class DeleteCategoryHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ValidDelete_ShouldInvalidateCategoriesCache()
+    public async Task Handle_ValidDelete_ShouldInvalidateCategoryMutation()
     {
         var category = Category.Create("cat-1", "Electronics", null);
         _categoryRepoMock
@@ -98,8 +98,8 @@ public sealed class DeleteCategoryHandlerTests
 
         await _handler.Handle(new DeleteCategoryCommand("cat-1"), CancellationToken.None);
 
-        _cacheMock.Verify(
-            c => c.RemoveAsync(CacheKeys.AllCategories, It.IsAny<CancellationToken>()),
+        _cacheInvalidationMock.Verify(
+            s => s.InvalidateCategoryMutationAsync(It.IsAny<CancellationToken>()),
             Times.Once);
     }
 

@@ -20,7 +20,7 @@ public sealed class CreateCategoryHandlerTests
     private readonly Mock<IIdGenerator> _idGeneratorMock = new();
     private readonly Mock<IMapper> _mapperMock = new();
     private readonly Mock<IPublisher> _publisherMock = new();
-    private readonly Mock<ICacheService> _cacheMock = new();
+    private readonly Mock<ICacheInvalidationService> _cacheInvalidationMock = new();
     private readonly CreateCategoryHandler _handler;
 
     public CreateCategoryHandlerTests()
@@ -29,8 +29,8 @@ public sealed class CreateCategoryHandlerTests
         _categoryRepoMock
             .Setup(r => r.AddAsync(It.IsAny<Category>(), It.IsAny<CancellationToken>()))
             .Returns((Category c, CancellationToken _) => Task.FromResult(c));
-        _cacheMock
-            .Setup(c => c.RemoveAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        _cacheInvalidationMock
+            .Setup(s => s.InvalidateCategoryMutationAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         _publisherMock
             .Setup(p => p.Publish(It.IsAny<INotification>(), It.IsAny<CancellationToken>()))
@@ -41,7 +41,7 @@ public sealed class CreateCategoryHandlerTests
             _idGeneratorMock.Object,
             _mapperMock.Object,
             _publisherMock.Object,
-            _cacheMock.Object);
+            _cacheInvalidationMock.Object);
     }
 
     [Fact]
@@ -62,15 +62,15 @@ public sealed class CreateCategoryHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ValidCommand_ShouldInvalidateCategoriesCache()
+    public async Task Handle_ValidCommand_ShouldInvalidateCategoryMutation()
     {
         var dto = new CategoryDto { Id = "cat-1", Name = "Electronics" };
         _mapperMock.Setup(m => m.Map<CategoryDto>(It.IsAny<Category>())).Returns(dto);
 
         await _handler.Handle(new CreateCategoryCommand("Electronics", null), CancellationToken.None);
 
-        _cacheMock.Verify(
-            c => c.RemoveAsync(CacheKeys.AllCategories, It.IsAny<CancellationToken>()),
+        _cacheInvalidationMock.Verify(
+            s => s.InvalidateCategoryMutationAsync(It.IsAny<CancellationToken>()),
             Times.Once);
     }
 

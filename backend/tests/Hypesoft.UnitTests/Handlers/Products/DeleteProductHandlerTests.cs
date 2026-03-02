@@ -17,13 +17,13 @@ public sealed class DeleteProductHandlerTests
 {
     private readonly Mock<IProductRepository> _productRepoMock = new();
     private readonly Mock<IPublisher> _publisherMock = new();
-    private readonly Mock<ICacheService> _cacheMock = new();
+    private readonly Mock<ICacheInvalidationService> _cacheInvalidationMock = new();
     private readonly DeleteProductHandler _handler;
 
     public DeleteProductHandlerTests()
     {
-        _cacheMock
-            .Setup(c => c.RemoveAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        _cacheInvalidationMock
+            .Setup(s => s.InvalidateProductMutationAsync(It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         _publisherMock
             .Setup(p => p.Publish(It.IsAny<INotification>(), It.IsAny<CancellationToken>()))
@@ -35,7 +35,7 @@ public sealed class DeleteProductHandlerTests
         _handler = new DeleteProductHandler(
             _productRepoMock.Object,
             _publisherMock.Object,
-            _cacheMock.Object);
+            _cacheInvalidationMock.Object);
     }
 
     private static Product BuildProduct(string id = "prod-1")
@@ -73,7 +73,7 @@ public sealed class DeleteProductHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ValidDelete_ShouldInvalidateProductAndDashboardCaches()
+    public async Task Handle_ValidDelete_ShouldInvalidateProductMutation()
     {
         var product = BuildProduct();
         _productRepoMock
@@ -82,11 +82,8 @@ public sealed class DeleteProductHandlerTests
 
         await _handler.Handle(new DeleteProductCommand("prod-1"), CancellationToken.None);
 
-        _cacheMock.Verify(
-            c => c.RemoveAsync(CacheKeys.ProductById("prod-1"), It.IsAny<CancellationToken>()),
-            Times.Once);
-        _cacheMock.Verify(
-            c => c.RemoveAsync(CacheKeys.DashboardSummary, It.IsAny<CancellationToken>()),
+        _cacheInvalidationMock.Verify(
+            s => s.InvalidateProductMutationAsync("prod-1", It.IsAny<CancellationToken>()),
             Times.Once);
     }
 

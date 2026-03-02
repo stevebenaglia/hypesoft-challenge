@@ -17,11 +17,11 @@ namespace Hypesoft.UnitTests.Handlers.Products;
 public sealed class CreateProductHandlerTests
 {
     private readonly Mock<IProductRepository> _productRepoMock = new();
-    private readonly Mock<ICategoryRepository> _categoryRepoMock = new();
     private readonly Mock<IIdGenerator> _idGeneratorMock = new();
     private readonly Mock<IMapper> _mapperMock = new();
     private readonly Mock<IPublisher> _publisherMock = new();
-    private readonly Mock<ICacheService> _cacheMock = new();
+    private readonly Mock<ICacheInvalidationService> _cacheInvalidationMock = new();
+    private readonly Mock<IProductDtoEnricher> _enricherMock = new();
     private readonly CreateProductHandler _handler;
 
     public CreateProductHandlerTests()
@@ -30,20 +30,23 @@ public sealed class CreateProductHandlerTests
         _productRepoMock
             .Setup(r => r.AddAsync(It.IsAny<Product>(), It.IsAny<CancellationToken>()))
             .Returns((Product p, CancellationToken _) => Task.FromResult(p));
-        _cacheMock
-            .Setup(c => c.RemoveAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        _cacheInvalidationMock
+            .Setup(s => s.InvalidateProductMutationAsync(It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         _publisherMock
             .Setup(p => p.Publish(It.IsAny<INotification>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
+        _enricherMock
+            .Setup(e => e.EnrichAsync(It.IsAny<ProductDto>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         _handler = new CreateProductHandler(
             _productRepoMock.Object,
-            _categoryRepoMock.Object,
             _idGeneratorMock.Object,
             _mapperMock.Object,
             _publisherMock.Object,
-            _cacheMock.Object);
+            _cacheInvalidationMock.Object,
+            _enricherMock.Object);
     }
 
     private static CreateProductCommand ValidCommand() =>
@@ -55,9 +58,6 @@ public sealed class CreateProductHandlerTests
         _mapperMock
             .Setup(m => m.Map<ProductDto>(It.IsAny<Product>()))
             .Returns(new ProductDto { Id = "prod-1", Name = "Laptop" });
-        _categoryRepoMock
-            .Setup(r => r.GetByIdAsync("cat-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync((Category?)null);
 
         await _handler.Handle(ValidCommand(), CancellationToken.None);
 
@@ -67,19 +67,16 @@ public sealed class CreateProductHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ValidCommand_ShouldInvalidateDashboardCache()
+    public async Task Handle_ValidCommand_ShouldInvalidateProductMutation()
     {
         _mapperMock
             .Setup(m => m.Map<ProductDto>(It.IsAny<Product>()))
             .Returns(new ProductDto { Id = "prod-1", Name = "Laptop" });
-        _categoryRepoMock
-            .Setup(r => r.GetByIdAsync("cat-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync((Category?)null);
 
         await _handler.Handle(ValidCommand(), CancellationToken.None);
 
-        _cacheMock.Verify(
-            c => c.RemoveAsync(CacheKeys.DashboardSummary, It.IsAny<CancellationToken>()),
+        _cacheInvalidationMock.Verify(
+            s => s.InvalidateProductMutationAsync(null, It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -89,9 +86,6 @@ public sealed class CreateProductHandlerTests
         _mapperMock
             .Setup(m => m.Map<ProductDto>(It.IsAny<Product>()))
             .Returns(new ProductDto { Id = "prod-1", Name = "Laptop" });
-        _categoryRepoMock
-            .Setup(r => r.GetByIdAsync("cat-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync((Category?)null);
 
         await _handler.Handle(ValidCommand(), CancellationToken.None);
 
@@ -103,14 +97,28 @@ public sealed class CreateProductHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ValidCommand_ShouldCallEnrichAsync()
+    {
+        _mapperMock
+            .Setup(m => m.Map<ProductDto>(It.IsAny<Product>()))
+            .Returns(new ProductDto { Id = "prod-1", Name = "Laptop" });
+
+        await _handler.Handle(ValidCommand(), CancellationToken.None);
+
+        _enricherMock.Verify(
+            e => e.EnrichAsync(It.IsAny<ProductDto>(), "cat-1", It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
     public async Task Handle_ValidCommand_ShouldReturnDtoWithCategoryName()
     {
         var dto = new ProductDto { Id = "prod-1", Name = "Laptop" };
         _mapperMock.Setup(m => m.Map<ProductDto>(It.IsAny<Product>())).Returns(dto);
-        var category = Category.Create("cat-1", "Electronics", null);
-        _categoryRepoMock
-            .Setup(r => r.GetByIdAsync("cat-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(category);
+        _enricherMock
+            .Setup(e => e.EnrichAsync(It.IsAny<ProductDto>(), "cat-1", It.IsAny<CancellationToken>()))
+            .Callback((ProductDto d, string _, CancellationToken _) => d.CategoryName = "Electronics")
+            .Returns(Task.CompletedTask);
 
         var result = await _handler.Handle(ValidCommand(), CancellationToken.None);
 
@@ -118,16 +126,13 @@ public sealed class CreateProductHandlerTests
     }
 
     [Fact]
-    public async Task Handle_CategoryNotFound_ShouldReturnDtoWithNullCategoryName()
+    public async Task Handle_ValidCommand_ShouldReturnMappedDto()
     {
-        var dto = new ProductDto { Id = "prod-1", Name = "Laptop" };
-        _mapperMock.Setup(m => m.Map<ProductDto>(It.IsAny<Product>())).Returns(dto);
-        _categoryRepoMock
-            .Setup(r => r.GetByIdAsync("cat-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync((Category?)null);
+        var expected = new ProductDto { Id = "prod-1", Name = "Laptop" };
+        _mapperMock.Setup(m => m.Map<ProductDto>(It.IsAny<Product>())).Returns(expected);
 
         var result = await _handler.Handle(ValidCommand(), CancellationToken.None);
 
-        result.CategoryName.Should().BeNull();
+        result.Should().Be(expected);
     }
 }
