@@ -12,25 +12,31 @@ public sealed class GetProductsHandler : IRequestHandler<GetProductsQuery, Paged
     private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(2);
 
     private readonly IProductRepository _productRepository;
-    private readonly ICategoryRepository _categoryRepository;
     private readonly IMapper _mapper;
     private readonly ICacheService _cache;
+    private readonly ICacheInvalidationService _cacheInvalidation;
+    private readonly IProductDtoEnricher _enricher;
 
     public GetProductsHandler(
         IProductRepository productRepository,
-        ICategoryRepository categoryRepository,
         IMapper mapper,
-        ICacheService cache)
+        ICacheService cache,
+        ICacheInvalidationService cacheInvalidation,
+        IProductDtoEnricher enricher)
     {
         _productRepository = productRepository;
-        _categoryRepository = categoryRepository;
         _mapper = mapper;
         _cache = cache;
+        _cacheInvalidation = cacheInvalidation;
+        _enricher = enricher;
     }
 
     public async Task<PagedResultDto<ProductDto>> Handle(GetProductsQuery request, CancellationToken cancellationToken)
     {
-        var cacheKey = CacheKeys.ProductList(request.PageNumber, request.PageSize, request.SearchTerm, request.CategoryId);
+        // The generation is bumped on every product mutation, effectively invalidating
+        // all paginated product-list entries without pattern-based key deletion.
+        var generation = await _cacheInvalidation.GetProductListGenerationAsync(cancellationToken);
+        var cacheKey = CacheKeys.ProductList(generation, request.PageNumber, request.PageSize, request.SearchTerm, request.CategoryId);
 
         var cached = await _cache.GetAsync<PagedResultDto<ProductDto>>(cacheKey, cancellationToken);
         if (cached is not null)
@@ -45,14 +51,7 @@ public sealed class GetProductsHandler : IRequestHandler<GetProductsQuery, Paged
 
         var dtos = _mapper.Map<IEnumerable<ProductDto>>(items).ToList();
 
-        // Enrich with category names using a single $in query instead of N individual lookups
-        var categoryIds = dtos.Select(d => d.CategoryId).Distinct().ToList();
-        var categories = await _categoryRepository.GetByIdsAsync(categoryIds, cancellationToken);
-
-        var categoryMap = categories.ToDictionary(c => c.Id, c => c.Name);
-
-        foreach (var dto in dtos)
-            dto.CategoryName = categoryMap.GetValueOrDefault(dto.CategoryId);
+        await _enricher.EnrichManyAsync(dtos, cancellationToken);
 
         var result = PagedResultDto<ProductDto>.Create(dtos, totalCount, request.PageNumber, request.PageSize);
 

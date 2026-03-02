@@ -15,18 +15,18 @@ public sealed class UpdateCategoryHandler : IRequestHandler<UpdateCategoryComman
     private readonly ICategoryRepository _categoryRepository;
     private readonly IMapper _mapper;
     private readonly IPublisher _publisher;
-    private readonly ICacheService _cache;
+    private readonly ICacheInvalidationService _cacheInvalidation;
 
     public UpdateCategoryHandler(
         ICategoryRepository categoryRepository,
         IMapper mapper,
         IPublisher publisher,
-        ICacheService cache)
+        ICacheInvalidationService cacheInvalidation)
     {
         _categoryRepository = categoryRepository;
         _mapper = mapper;
         _publisher = publisher;
-        _cache = cache;
+        _cacheInvalidation = cacheInvalidation;
     }
 
     public async Task<CategoryDto> Handle(UpdateCategoryCommand request, CancellationToken cancellationToken)
@@ -38,7 +38,7 @@ public sealed class UpdateCategoryHandler : IRequestHandler<UpdateCategoryComman
 
         await _categoryRepository.UpdateAsync(category, cancellationToken);
 
-        await _cache.RemoveAsync(CacheKeys.AllCategories, cancellationToken);
+        await _cacheInvalidation.InvalidateCategoryMutationAsync(cancellationToken);
 
         await _publisher.Publish(
             new DomainEventNotification<CategoryUpdatedEvent>(

@@ -14,23 +14,23 @@ namespace Hypesoft.Application.Handlers.Products;
 public sealed class UpdateStockHandler : IRequestHandler<UpdateStockCommand, ProductDto>
 {
     private readonly IProductRepository _productRepository;
-    private readonly ICategoryRepository _categoryRepository;
     private readonly IMapper _mapper;
     private readonly IPublisher _publisher;
-    private readonly ICacheService _cache;
+    private readonly ICacheInvalidationService _cacheInvalidation;
+    private readonly IProductDtoEnricher _enricher;
 
     public UpdateStockHandler(
         IProductRepository productRepository,
-        ICategoryRepository categoryRepository,
         IMapper mapper,
         IPublisher publisher,
-        ICacheService cache)
+        ICacheInvalidationService cacheInvalidation,
+        IProductDtoEnricher enricher)
     {
         _productRepository = productRepository;
-        _categoryRepository = categoryRepository;
         _mapper = mapper;
         _publisher = publisher;
-        _cache = cache;
+        _cacheInvalidation = cacheInvalidation;
+        _enricher = enricher;
     }
 
     public async Task<ProductDto> Handle(UpdateStockCommand request, CancellationToken cancellationToken)
@@ -45,9 +45,7 @@ public sealed class UpdateStockHandler : IRequestHandler<UpdateStockCommand, Pro
 
         await _productRepository.UpdateAsync(product, cancellationToken);
 
-        await Task.WhenAll(
-            _cache.RemoveAsync(CacheKeys.ProductById(request.Id), cancellationToken),
-            _cache.RemoveAsync(CacheKeys.DashboardSummary, cancellationToken));
+        await _cacheInvalidation.InvalidateProductMutationAsync(request.Id, cancellationToken);
 
         await _publisher.Publish(
             new DomainEventNotification<StockUpdatedEvent>(
@@ -55,9 +53,7 @@ public sealed class UpdateStockHandler : IRequestHandler<UpdateStockCommand, Pro
             cancellationToken);
 
         var dto = _mapper.Map<ProductDto>(product);
-
-        var category = await _categoryRepository.GetByIdAsync(product.CategoryId, cancellationToken);
-        dto.CategoryName = category?.Name;
+        await _enricher.EnrichAsync(dto, product.CategoryId, cancellationToken);
 
         return dto;
     }

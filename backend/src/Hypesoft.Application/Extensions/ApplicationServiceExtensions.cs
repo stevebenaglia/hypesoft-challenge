@@ -1,5 +1,7 @@
 using FluentValidation;
 using Hypesoft.Application.Behaviors;
+using Hypesoft.Application.Interfaces;
+using Hypesoft.Application.Services;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -21,6 +23,8 @@ public static class ApplicationServiceExtensions
         services.AddAutoMapper(assembly);
 
         services.AddValidatorsFromAssembly(assembly);
+
+        services.AddScoped<IProductDtoEnricher, ProductDtoEnricher>();
 
         return services;
     }

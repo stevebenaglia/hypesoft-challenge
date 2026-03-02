@@ -13,18 +13,18 @@ public sealed class DeleteCategoryHandler : IRequestHandler<DeleteCategoryComman
     private readonly ICategoryRepository _categoryRepository;
     private readonly IProductRepository _productRepository;
     private readonly IPublisher _publisher;
-    private readonly ICacheService _cache;
+    private readonly ICacheInvalidationService _cacheInvalidation;
 
     public DeleteCategoryHandler(
         ICategoryRepository categoryRepository,
         IProductRepository productRepository,
         IPublisher publisher,
-        ICacheService cache)
+        ICacheInvalidationService cacheInvalidation)
     {
         _categoryRepository = categoryRepository;
         _productRepository = productRepository;
         _publisher = publisher;
-        _cache = cache;
+        _cacheInvalidation = cacheInvalidation;
     }
 
     public async Task<Unit> Handle(DeleteCategoryCommand request, CancellationToken cancellationToken)
@@ -38,7 +38,7 @@ public sealed class DeleteCategoryHandler : IRequestHandler<DeleteCategoryComman
 
         await _categoryRepository.DeleteAsync(category, cancellationToken);
 
-        await _cache.RemoveAsync(CacheKeys.AllCategories, cancellationToken);
+        await _cacheInvalidation.InvalidateCategoryMutationAsync(cancellationToken);
 
         await _publisher.Publish(
             new DomainEventNotification<CategoryDeletedEvent>(

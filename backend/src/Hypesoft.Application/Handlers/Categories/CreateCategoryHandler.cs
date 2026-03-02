@@ -17,20 +17,20 @@ public sealed class CreateCategoryHandler : IRequestHandler<CreateCategoryComman
     private readonly IIdGenerator _idGenerator;
     private readonly IMapper _mapper;
     private readonly IPublisher _publisher;
-    private readonly ICacheService _cache;
+    private readonly ICacheInvalidationService _cacheInvalidation;
 
     public CreateCategoryHandler(
         ICategoryRepository categoryRepository,
         IIdGenerator idGenerator,
         IMapper mapper,
         IPublisher publisher,
-        ICacheService cache)
+        ICacheInvalidationService cacheInvalidation)
     {
         _categoryRepository = categoryRepository;
         _idGenerator = idGenerator;
         _mapper = mapper;
         _publisher = publisher;
-        _cache = cache;
+        _cacheInvalidation = cacheInvalidation;
     }
 
     public async Task<CategoryDto> Handle(CreateCategoryCommand request, CancellationToken cancellationToken)
@@ -39,7 +39,7 @@ public sealed class CreateCategoryHandler : IRequestHandler<CreateCategoryComman
 
         await _categoryRepository.AddAsync(category, cancellationToken);
 
-        await _cache.RemoveAsync(CacheKeys.AllCategories, cancellationToken);
+        await _cacheInvalidation.InvalidateCategoryMutationAsync(cancellationToken);
 
         await _publisher.Publish(
             new DomainEventNotification<CategoryCreatedEvent>(

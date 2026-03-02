@@ -12,13 +12,13 @@ public sealed class DeleteProductHandler : IRequestHandler<DeleteProductCommand,
 {
     private readonly IProductRepository _productRepository;
     private readonly IPublisher _publisher;
-    private readonly ICacheService _cache;
+    private readonly ICacheInvalidationService _cacheInvalidation;
 
-    public DeleteProductHandler(IProductRepository productRepository, IPublisher publisher, ICacheService cache)
+    public DeleteProductHandler(IProductRepository productRepository, IPublisher publisher, ICacheInvalidationService cacheInvalidation)
     {
         _productRepository = productRepository;
         _publisher = publisher;
-        _cache = cache;
+        _cacheInvalidation = cacheInvalidation;
     }
 
     public async Task<Unit> Handle(DeleteProductCommand request, CancellationToken cancellationToken)
@@ -28,9 +28,7 @@ public sealed class DeleteProductHandler : IRequestHandler<DeleteProductCommand,
 
         await _productRepository.DeleteAsync(product, cancellationToken);
 
-        await Task.WhenAll(
-            _cache.RemoveAsync(CacheKeys.ProductById(request.Id), cancellationToken),
-            _cache.RemoveAsync(CacheKeys.DashboardSummary, cancellationToken));
+        await _cacheInvalidation.InvalidateProductMutationAsync(request.Id, cancellationToken);
 
         await _publisher.Publish(
             new DomainEventNotification<ProductDeletedEvent>(
