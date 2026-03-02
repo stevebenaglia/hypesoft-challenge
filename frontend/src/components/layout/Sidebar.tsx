@@ -46,7 +46,7 @@ function NavItem({
     >
       <Icon
         className={cn(
-          "h-[18px] w-[18px] shrink-0",
+          "h-4.5 w-4.5 shrink-0",
           isActive ? "text-white" : "text-zinc-500 dark:text-zinc-400"
         )}
       />
@@ -138,7 +138,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
   return (
     <>
       {/* Desktop sidebar */}
-      <div className="hidden md:flex md:flex-shrink-0">
+      <div className="hidden md:flex md:shrink-0">
         <SidebarContent />
       </div>
 
