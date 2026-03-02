@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using MongoDB.Driver;
 using MongoDB.EntityFrameworkCore.Extensions;
 using Testcontainers.MongoDb;
 
@@ -15,6 +16,8 @@ namespace Hypesoft.IntegrationTests.Infrastructure;
 /// </summary>
 public sealed class HypesoftWebAppFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
+    private const string TestDatabase = "hypesoft_test";
+
     private readonly MongoDbContainer _mongoContainer = new MongoDbBuilder()
         .WithImage("mongo:7")
         .Build();
@@ -41,7 +44,15 @@ public sealed class HypesoftWebAppFactory : WebApplicationFactory<Program>, IAsy
                 services.Remove(dbContextDescriptor);
 
             services.AddDbContext<Hypesoft.Infrastructure.Data.ApplicationDbContext>(options =>
-                options.UseMongoDB(_mongoContainer.GetConnectionString(), "hypesoft_test"));
+                options.UseMongoDB(_mongoContainer.GetConnectionString(), TestDatabase));
+
+            // ── Replace IMongoClient/IMongoDatabase with Testcontainer instance ──
+            // Required because ProductRepository uses the native driver for aggregation pipelines.
+            services.RemoveAll<IMongoClient>();
+            services.RemoveAll<IMongoDatabase>();
+            var mongoClient = new MongoClient(_mongoContainer.GetConnectionString());
+            services.AddSingleton<IMongoClient>(mongoClient);
+            services.AddSingleton<IMongoDatabase>(mongoClient.GetDatabase(TestDatabase));
 
             // ── Replace JWT authentication with TestAuthHandler ──
             services.RemoveAll<IAuthenticationSchemeProvider>();
