@@ -1,3 +1,4 @@
+using Hypesoft.Domain.Constants;
 using Hypesoft.Domain.ValueObjects;
 
 namespace Hypesoft.Domain.Entities;
@@ -41,5 +42,5 @@ public sealed class Product
         StockQuantity = quantity.Value;
     }
 
-    public bool IsLowStock() => StockQuantity < 10;
+    public bool IsLowStock() => StockQuantity < DomainConstants.LowStockThreshold;
 }

@@ -1,3 +1,4 @@
+using Hypesoft.Domain.Constants;
 using Hypesoft.Domain.Entities;
 
 namespace Hypesoft.Domain.Repositories;
@@ -23,7 +24,7 @@ public interface IProductRepository
     Task<bool> HasProductsInCategoryAsync(string categoryId, CancellationToken cancellationToken = default);
 
     /// <summary>Returns products whose StockQuantity is below the given threshold.</summary>
-    Task<IEnumerable<Product>> GetLowStockAsync(int threshold = 10, CancellationToken cancellationToken = default);
+    Task<IEnumerable<Product>> GetLowStockAsync(int threshold = DomainConstants.LowStockThreshold, CancellationToken cancellationToken = default);
 
     Task<int> GetTotalCountAsync(CancellationToken cancellationToken = default);
     Task<decimal> GetTotalStockValueAsync(CancellationToken cancellationToken = default);

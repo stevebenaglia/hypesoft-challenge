@@ -1,3 +1,4 @@
+using Hypesoft.Domain.Constants;
 using Hypesoft.Domain.Exceptions;
 
 namespace Hypesoft.Domain.ValueObjects;
@@ -5,8 +6,6 @@ namespace Hypesoft.Domain.ValueObjects;
 /// <summary>Value object representing a non-negative stock quantity.</summary>
 public sealed record StockQuantity
 {
-    private const int LowStockThreshold = 10;
-
     public int Value { get; }
 
     private StockQuantity(int value) => Value = value;
@@ -19,7 +18,7 @@ public sealed record StockQuantity
         return new StockQuantity(value);
     }
 
-    public bool IsLow => Value < LowStockThreshold;
+    public bool IsLow => Value < DomainConstants.LowStockThreshold;
 
     public static implicit operator int(StockQuantity stock) => stock.Value;
 

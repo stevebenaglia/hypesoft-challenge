@@ -37,7 +37,7 @@ public sealed class GetDashboardSummaryHandler : IRequestHandler<GetDashboardSum
         var totalCountTask = _productRepository.GetTotalCountAsync(cancellationToken);
         var totalValueTask = _productRepository.GetTotalStockValueAsync(cancellationToken);
         var countByCategoryTask = _productRepository.GetCountByCategoryAsync(cancellationToken);
-        var lowStockTask = _productRepository.GetLowStockAsync(10, cancellationToken);
+        var lowStockTask = _productRepository.GetLowStockAsync(cancellationToken: cancellationToken);
         var categoriesTask = _categoryRepository.GetAllAsync(cancellationToken);
 
         await Task.WhenAll(totalCountTask, totalValueTask, countByCategoryTask, lowStockTask, categoriesTask);
