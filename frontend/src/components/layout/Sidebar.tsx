@@ -2,27 +2,32 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useSession, signOut } from "next-auth/react";
-import { LayoutDashboard, Package, Tag, LogOut, Menu, X } from "lucide-react";
-import { useState } from "react";
+import { useSession } from "next-auth/react";
+import { LayoutDashboard, Package, Tag } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import type { DashboardSummary } from "@/types/api";
 
 const mainNav = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/products", label: "Produtos", icon: Package },
+  { href: "/", label: "Dashboard", icon: LayoutDashboard, showBadge: false },
+  { href: "/products", label: "Produtos", icon: Package, showBadge: true },
 ];
 
-const adminNav = [{ href: "/categories", label: "Categorias", icon: Tag }];
+const adminNav = [
+  { href: "/categories", label: "Categorias", icon: Tag, showBadge: false },
+];
 
 function NavItem({
   href,
   label,
   icon: Icon,
+  badge,
   onClick,
 }: {
   href: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
+  badge?: number;
   onClick?: () => void;
 }) {
   const pathname = usePathname();
@@ -45,7 +50,19 @@ function NavItem({
           isActive ? "text-white" : "text-zinc-500 dark:text-zinc-400"
         )}
       />
-      {label}
+      <span className="flex-1">{label}</span>
+      {badge != null && badge > 0 && (
+        <span
+          className={cn(
+            "flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-semibold",
+            isActive
+              ? "bg-white/20 text-white"
+              : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400"
+          )}
+        >
+          {badge > 99 ? "99+" : badge}
+        </span>
+      )}
     </Link>
   );
 }
@@ -53,14 +70,27 @@ function NavItem({
 function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
   const { data: session } = useSession();
   const isAdmin = session?.user.roles.includes("admin");
-  const initial = (session?.user.name ?? session?.user.email ?? "U")
-    .charAt(0)
-    .toUpperCase();
+
+  const { data: dashboard } = useQuery<DashboardSummary | null>({
+    queryKey: ["dashboard-sidebar"],
+    queryFn: async () => {
+      if (!session?.accessToken) return null;
+      const res = await fetch("/api/dashboard", {
+        headers: { Authorization: `Bearer ${session.accessToken}` },
+      });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!session?.accessToken,
+    staleTime: 60_000,
+  });
+
+  const lowStockCount = dashboard?.lowStockProducts.length ?? 0;
 
   return (
     <div className="flex h-full w-64 flex-col border-r border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
       {/* Brand */}
-      <div className="flex items-center gap-3 px-5 py-6">
+      <div className="flex items-center gap-3 px-5 py-5">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-600 text-sm font-bold text-white">
           H
         </div>
@@ -75,44 +105,36 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
           Geral
         </p>
         {mainNav.map((item) => (
-          <NavItem key={item.href} {...item} onClick={onNavClick} />
+          <NavItem
+            key={item.href}
+            href={item.href}
+            label={item.label}
+            icon={item.icon}
+            badge={item.showBadge ? lowStockCount : undefined}
+            onClick={onNavClick}
+          />
         ))}
         {isAdmin &&
           adminNav.map((item) => (
-            <NavItem key={item.href} {...item} onClick={onNavClick} />
+            <NavItem
+              key={item.href}
+              href={item.href}
+              label={item.label}
+              icon={item.icon}
+              onClick={onNavClick}
+            />
           ))}
       </nav>
-
-      {/* User footer */}
-      <div className="border-t border-zinc-100 px-3 py-4 dark:border-zinc-800">
-        <div className="flex items-center gap-3 rounded-xl px-3 py-2">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-violet-100 text-xs font-semibold text-violet-700 dark:bg-violet-900/40 dark:text-violet-300">
-            {initial}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-50">
-              {session?.user.name ?? session?.user.email}
-            </p>
-            <p className="text-xs text-zinc-500">
-              {isAdmin ? "Administrador" : "Usuário"}
-            </p>
-          </div>
-          <button
-            onClick={() => signOut({ callbackUrl: "/auth/signin" })}
-            className="shrink-0 rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
-            title="Sair"
-          >
-            <LogOut className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
     </div>
   );
 }
 
-export default function Sidebar() {
-  const [mobileOpen, setMobileOpen] = useState(false);
+interface SidebarProps {
+  open: boolean;
+  onClose: () => void;
+}
 
+export default function Sidebar({ open, onClose }: SidebarProps) {
   return (
     <>
       {/* Desktop sidebar */}
@@ -120,37 +142,15 @@ export default function Sidebar() {
         <SidebarContent />
       </div>
 
-      {/* Mobile topbar */}
-      <div className="fixed left-0 right-0 top-0 z-30 flex items-center justify-between border-b border-zinc-200 bg-white px-4 py-3 md:hidden dark:border-zinc-700 dark:bg-zinc-900">
-        <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-600 text-xs font-bold text-white">
-            H
-          </div>
-          <span className="text-base font-bold text-zinc-900 dark:text-zinc-50">
-            Hypesoft
-          </span>
-        </div>
-        <button
-          onClick={() => setMobileOpen((o) => !o)}
-          className="rounded-lg p-2 text-zinc-600 transition-colors hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
-        >
-          {mobileOpen ? (
-            <X className="h-5 w-5" />
-          ) : (
-            <Menu className="h-5 w-5" />
-          )}
-        </button>
-      </div>
-
       {/* Mobile overlay + drawer */}
-      {mobileOpen && (
+      {open && (
         <>
           <div
             className="fixed inset-0 z-40 bg-black/40 md:hidden"
-            onClick={() => setMobileOpen(false)}
+            onClick={onClose}
           />
           <div className="fixed inset-y-0 left-0 z-50 md:hidden">
-            <SidebarContent onNavClick={() => setMobileOpen(false)} />
+            <SidebarContent onNavClick={onClose} />
           </div>
         </>
       )}

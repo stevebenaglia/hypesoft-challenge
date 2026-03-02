@@ -6,17 +6,20 @@ import { useState } from "react";
 import { createQueryClient } from "@/stores/queryClient";
 import { Toaster } from "@/components/ui/sonner";
 import SessionErrorHandler from "@/components/auth/SessionErrorHandler";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => createQueryClient());
 
   return (
-    <SessionProvider>
-      <SessionErrorHandler />
-      <QueryClientProvider client={queryClient}>
-        {children}
-        <Toaster />
-      </QueryClientProvider>
-    </SessionProvider>
+    <ThemeProvider>
+      <SessionProvider>
+        <SessionErrorHandler />
+        <QueryClientProvider client={queryClient}>
+          {children}
+          <Toaster />
+        </QueryClientProvider>
+      </SessionProvider>
+    </ThemeProvider>
   );
 }
