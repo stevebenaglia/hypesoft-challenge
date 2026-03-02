@@ -6,6 +6,8 @@ import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { AlertTriangle } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -52,6 +54,7 @@ export default function ProductsClient({
   const [modal, setModal] = useState<ModalState>({ type: "none" });
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [stockFilter, setStockFilter] = useState("all");
 
   const isAdmin = session?.user.roles.includes("admin");
 
@@ -63,9 +66,11 @@ export default function ProductsClient({
         (p.categoryName ?? "").toLowerCase().includes(q);
       const matchesCategory =
         categoryFilter === "all" || p.categoryId === categoryFilter;
-      return matchesSearch && matchesCategory;
+      const matchesStock =
+        stockFilter === "all" || (stockFilter === "low" && p.stockQuantity < 10);
+      return matchesSearch && matchesCategory && matchesStock;
     });
-  }, [products, search, categoryFilter]);
+  }, [products, search, categoryFilter, stockFilter]);
 
   const deleteMutation = useDeleteProduct({
     onSuccess: (deletedId) => {
@@ -131,6 +136,20 @@ export default function ProductsClient({
             ))}
           </SelectContent>
         </Select>
+        <Select value={stockFilter} onValueChange={setStockFilter}>
+          <SelectTrigger className="sm:max-w-xs">
+            <SelectValue placeholder="Todos os estoques" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os estoques</SelectItem>
+            <SelectItem value="low">
+              <span className="flex items-center gap-1.5">
+                <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
+                Estoque baixo (&lt; 10)
+              </span>
+            </SelectItem>
+          </SelectContent>
+        </Select>
         <p className="self-center text-sm text-zinc-400">
           {filtered.length} produto(s)
         </p>
@@ -168,7 +187,11 @@ export default function ProductsClient({
               {filtered.map((product) => (
                 <tr
                   key={product.id}
-                  className="hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
+                  className={cn(
+                    "hover:bg-zinc-50 dark:hover:bg-zinc-900/50",
+                    product.stockQuantity < 10 &&
+                      "bg-amber-50/60 dark:bg-amber-900/10"
+                  )}
                 >
                   <td className="px-6 py-4">
                     <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
@@ -187,9 +210,20 @@ export default function ProductsClient({
                     {formatCurrency(product.price)}
                   </td>
                   <td className="px-6 py-4 text-center">
-                    <Badge variant={stockBadgeVariant(product.stockQuantity)}>
-                      {product.stockQuantity} un.
-                    </Badge>
+                    <div className="flex items-center justify-center gap-1.5">
+                      {product.stockQuantity < 10 && (
+                        <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+                      )}
+                      <Badge variant={stockBadgeVariant(product.stockQuantity)}>
+                        <span
+                          className={
+                            product.stockQuantity < 10 ? "font-bold" : ""
+                          }
+                        >
+                          {product.stockQuantity} un.
+                        </span>
+                      </Badge>
+                    </div>
                   </td>
                   {isAdmin && (
                     <td className="px-6 py-4 text-right">
