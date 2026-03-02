@@ -1,0 +1,27 @@
+{
+  "$schema": "https://stryker-mutator.io/schemas/stryker-config.json",
+  "solution": "Hypesoft.sln",
+  "project-info": {
+    "name": "Hypesoft",
+    "version": "dashboard"
+  },
+  "mutation-level": "Complete",
+  "reporters": ["html", "progress"],
+  "thresholds": {
+    "high": 80,
+    "low": 70,
+    "break": 60
+  },
+  "since": {
+    "enabled": false
+  },
+  "test-runner": "dotnet-test",
+  "test-runner-timeout-ms": 60000,
+  "source-projects": [
+    "src/Hypesoft.Domain/Hypesoft.Domain.csproj",
+    "src/Hypesoft.Application/Hypesoft.Application.csproj"
+  ],
+  "test-projects": [
+    "tests/Hypesoft.UnitTests/Hypesoft.UnitTests.csproj"
+  ]
+}
