@@ -1,17 +1,22 @@
+using Hypesoft.Domain.Constants;
 using Hypesoft.Domain.Entities;
 using Hypesoft.Domain.Repositories;
 using Hypesoft.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using MongoDB.Bson;
+using MongoDB.Driver;
 
 namespace Hypesoft.Infrastructure.Repositories;
 
 public sealed class ProductRepository : IProductRepository
 {
     private readonly ApplicationDbContext _context;
+    private readonly IMongoCollection<BsonDocument> _collection;
 
-    public ProductRepository(ApplicationDbContext context)
+    public ProductRepository(ApplicationDbContext context, IMongoDatabase database)
     {
         _context = context;
+        _collection = database.GetCollection<BsonDocument>("products");
     }
 
     public async Task<Product?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
@@ -25,10 +30,12 @@ public sealed class ProductRepository : IProductRepository
         string? categoryId,
         CancellationToken cancellationToken = default)
     {
-        var query = _context.Products.AsQueryable();
-
+        // When a search term is provided, delegate to the $text path which uses the
+        // compound text index on { Name, Description } instead of an unindexed regex scan.
         if (!string.IsNullOrWhiteSpace(searchTerm))
-            query = query.Where(p => p.Name.ToLower().Contains(searchTerm.ToLower()));
+            return await GetPagedByTextSearchAsync(searchTerm, categoryId, pageNumber, pageSize, cancellationToken);
+
+        var query = _context.Products.AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(categoryId))
             query = query.Where(p => p.CategoryId == categoryId);
@@ -39,6 +46,49 @@ public sealed class ProductRepository : IProductRepository
             .OrderBy(p => p.Name)  // Consistent ordering prevents unstable pagination across pages
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return (items, totalCount);
+    }
+
+    /// <summary>
+    /// Uses MongoDB <c>$text</c> operator (requires the product_text_search index created by
+    /// <see cref="DatabaseInitializer"/>) to perform efficient word-based search on Name and Description.
+    /// Pagination is done at the database level; entities are then loaded via EF Core
+    /// to ensure correct materialisation of domain types.
+    /// </summary>
+    private async Task<(IEnumerable<Product> Items, int TotalCount)> GetPagedByTextSearchAsync(
+        string searchTerm,
+        string? categoryId,
+        int pageNumber,
+        int pageSize,
+        CancellationToken cancellationToken)
+    {
+        var filter = Builders<BsonDocument>.Filter.Text(searchTerm, new TextSearchOptions { CaseSensitive = false });
+
+        if (!string.IsNullOrWhiteSpace(categoryId))
+            filter &= Builders<BsonDocument>.Filter.Eq("CategoryId", categoryId);
+
+        var totalCount = (int)await _collection.CountDocumentsAsync(filter, cancellationToken: cancellationToken);
+
+        if (totalCount == 0)
+            return ([], 0);
+
+        // Fetch only the _id values for this page, ordered by name for stable pagination
+        var pageIdDocs = await _collection
+            .Find(filter)
+            .Sort(Builders<BsonDocument>.Sort.Ascending("Name"))
+            .Skip((pageNumber - 1) * pageSize)
+            .Limit(pageSize)
+            .Project(Builders<BsonDocument>.Projection.Include("_id"))
+            .ToListAsync(cancellationToken);
+
+        var ids = pageIdDocs.Select(d => d["_id"].AsString).ToList();
+
+        // Load full entities through EF Core to ensure correct domain-type materialisation
+        var items = await _context.Products
+            .Where(p => ids.Contains(p.Id))
+            .OrderBy(p => p.Name)
             .ToListAsync(cancellationToken);
 
         return (items, totalCount);
@@ -69,7 +119,7 @@ public sealed class ProductRepository : IProductRepository
     public async Task<bool> HasProductsInCategoryAsync(string categoryId, CancellationToken cancellationToken = default)
         => await _context.Products.AnyAsync(p => p.CategoryId == categoryId, cancellationToken);
 
-    public async Task<IEnumerable<Product>> GetLowStockAsync(int threshold = 10, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<Product>> GetLowStockAsync(int threshold = DomainConstants.LowStockThreshold, CancellationToken cancellationToken = default)
         => await _context.Products
             .Where(p => p.StockQuantity < threshold)
             .OrderBy(p => p.StockQuantity)
@@ -80,19 +130,34 @@ public sealed class ProductRepository : IProductRepository
 
     public async Task<decimal> GetTotalStockValueAsync(CancellationToken cancellationToken = default)
     {
-        // MongoDB.EntityFrameworkCore 8.x does not support SumAsync with a selector expression
-        // or anonymous-type Select projections. Load products and aggregate in memory.
-        var products = await _context.Products.ToListAsync(cancellationToken);
-        return products.Sum(p => p.Price * p.StockQuantity);
+        // Use native MongoDB aggregation pipeline to avoid loading all documents into memory.
+        // Fields are stored in PascalCase by MongoDB.EntityFrameworkCore's default convention.
+        var pipeline = new[]
+        {
+            new BsonDocument("$group", new BsonDocument
+            {
+                { "_id", BsonNull.Value },
+                { "total", new BsonDocument("$sum", new BsonDocument("$multiply", new BsonArray { "$Price", "$StockQuantity" })) }
+            })
+        };
+
+        var result = await _collection.Aggregate<BsonDocument>(pipeline).FirstOrDefaultAsync(cancellationToken);
+        return result is null ? 0m : (decimal)result["total"].AsDecimal128;
     }
 
     public async Task<IEnumerable<(string CategoryId, int Count)>> GetCountByCategoryAsync(CancellationToken cancellationToken = default)
     {
-        // MongoDB.EntityFrameworkCore 8.x does not support GroupBy with g.Key in LINQ translation.
-        // Load products and group in memory.
-        var products = await _context.Products.ToListAsync(cancellationToken);
-        return products
-            .GroupBy(p => p.CategoryId)
-            .Select(g => (CategoryId: g.Key, Count: g.Count()));
+        // Use native MongoDB aggregation pipeline to avoid loading all documents into memory.
+        var pipeline = new[]
+        {
+            new BsonDocument("$group", new BsonDocument
+            {
+                { "_id", "$CategoryId" },
+                { "count", new BsonDocument("$sum", 1) }
+            })
+        };
+
+        var results = await _collection.Aggregate<BsonDocument>(pipeline).ToListAsync(cancellationToken);
+        return results.Select(r => (CategoryId: r["_id"].AsString, Count: r["count"].AsInt32));
     }
 }

@@ -4,6 +4,7 @@ using Hypesoft.API.Middlewares;
 using Hypesoft.Infrastructure.Configurations;
 using Hypesoft.Infrastructure.Data;
 using Microsoft.AspNetCore.ResponseCompression;
+using MongoDB.Driver;
 using Serilog;
 using Serilog.Formatting.Compact;
 
@@ -55,6 +56,9 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     await db.Database.EnsureCreatedAsync();
+
+    var mongoDatabase = scope.ServiceProvider.GetRequiredService<IMongoDatabase>();
+    await DatabaseInitializer.EnsureIndexesAsync(mongoDatabase);
 }
 
 app.UseMiddleware<SecurityHeadersMiddleware>();

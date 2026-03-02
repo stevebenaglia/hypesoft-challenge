@@ -7,6 +7,7 @@ using Hypesoft.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using MongoDB.Driver;
 
 namespace Hypesoft.Infrastructure.Configurations;
 
@@ -21,6 +22,10 @@ public static class InfrastructureServiceExtensions
         var databaseName = configuration["MongoDB:DatabaseName"]
             ?? throw new InvalidOperationException("MongoDB:DatabaseName is not configured.");
 
+        var mongoClient = new MongoClient(connectionString);
+        services.AddSingleton<IMongoClient>(mongoClient);
+        services.AddSingleton<IMongoDatabase>(mongoClient.GetDatabase(databaseName));
+
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseMongoDB(connectionString, databaseName));
 
@@ -33,6 +38,7 @@ public static class InfrastructureServiceExtensions
 
         services.AddDistributedMemoryCache();
         services.AddScoped<ICacheService, DistributedCacheService>();
+        services.AddScoped<ICacheInvalidationService, CacheInvalidationService>();
 
         return services;
     }
