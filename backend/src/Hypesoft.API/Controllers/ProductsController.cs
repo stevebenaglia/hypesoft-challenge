@@ -21,6 +21,19 @@ public sealed class ProductsController : ControllerBase
     }
 
     /// <summary>Creates a new product.</summary>
+    /// <remarks>
+    /// Sample request:
+    ///
+    ///     POST /api/products
+    ///     {
+    ///       "name": "Notebook Dell XPS 15",
+    ///       "description": "Laptop de alto desempenho com tela OLED 4K",
+    ///       "price": 12999.90,
+    ///       "stockQuantity": 50,
+    ///       "categoryId": "64f1a2b3c4d5e6f7a8b9c0d1"
+    ///     }
+    ///
+    /// </remarks>
     [HttpPost]
     [Authorize(Roles = "admin")]
     [EnableRateLimiting(RateLimitingExtensions.WritesPolicy)]
@@ -35,6 +48,29 @@ public sealed class ProductsController : ControllerBase
     }
 
     /// <summary>Returns a paginated list of products with optional filters.</summary>
+    /// <remarks>
+    /// Sample response:
+    ///
+    ///     GET /api/products?pageNumber=1&amp;pageSize=10
+    ///     {
+    ///       "data": [
+    ///         {
+    ///           "id": "64f1a2b3c4d5e6f7a8b9c0d1",
+    ///           "name": "Notebook Dell XPS 15",
+    ///           "description": "Laptop de alto desempenho",
+    ///           "price": 12999.90,
+    ///           "stockQuantity": 50,
+    ///           "categoryId": "64f1a2b3c4d5e6f7a8b9c0d2",
+    ///           "categoryName": "Eletrônicos"
+    ///         }
+    ///       ],
+    ///       "pageNumber": 1,
+    ///       "pageSize": 10,
+    ///       "totalRecords": 1,
+    ///       "totalPages": 1
+    ///     }
+    ///
+    /// </remarks>
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -78,6 +114,15 @@ public sealed class ProductsController : ControllerBase
     }
 
     /// <summary>Updates only the stock quantity of a product.</summary>
+    /// <remarks>
+    /// Sample request:
+    ///
+    ///     PATCH /api/products/{id}/stock
+    ///     {
+    ///       "quantity": 75
+    ///     }
+    ///
+    /// </remarks>
     [HttpPatch("{id}/stock")]
     [Authorize(Roles = "admin")]
     [EnableRateLimiting(RateLimitingExtensions.WritesPolicy)]

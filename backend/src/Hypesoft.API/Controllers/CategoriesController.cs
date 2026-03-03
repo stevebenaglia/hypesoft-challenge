@@ -21,6 +21,16 @@ public sealed class CategoriesController : ControllerBase
     }
 
     /// <summary>Creates a new category.</summary>
+    /// <remarks>
+    /// Sample request:
+    ///
+    ///     POST /api/categories
+    ///     {
+    ///       "name": "Eletrônicos",
+    ///       "description": "Computadores, smartphones e acessórios"
+    ///     }
+    ///
+    /// </remarks>
     [HttpPost]
     [Authorize(Roles = "admin")]
     [EnableRateLimiting(RateLimitingExtensions.WritesPolicy)]

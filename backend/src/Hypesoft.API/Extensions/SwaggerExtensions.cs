@@ -1,3 +1,4 @@
+using System.Reflection;
 using Microsoft.OpenApi.Models;
 
 namespace Hypesoft.API.Extensions;
@@ -35,6 +36,10 @@ public static class SwaggerExtensions
                     Array.Empty<string>()
                 }
             });
+
+            var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+            var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+            c.IncludeXmlComments(xmlPath);
         });
 
         return services;
