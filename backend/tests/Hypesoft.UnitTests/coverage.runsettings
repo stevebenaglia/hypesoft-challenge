@@ -7,7 +7,7 @@
           <Format>cobertura,json</Format>
           <Include>[Hypesoft.Domain]*,[Hypesoft.Application]*</Include>
           <Exclude>[*.Tests]*,[*.IntegrationTests]*,[*.UnitTests]*</Exclude>
-          <Threshold>60</Threshold>
+          <Threshold>85</Threshold>
           <ThresholdType>line</ThresholdType>
           <ThresholdStat>total</ThresholdStat>
         </Configuration>
