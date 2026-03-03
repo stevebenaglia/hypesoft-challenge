@@ -9,27 +9,27 @@ public sealed class UpdateProductCommandValidator : AbstractValidator<UpdateProd
     public UpdateProductCommandValidator(ICategoryRepository categoryRepository)
     {
         RuleFor(x => x.Name)
-            .NotEmpty().WithMessage("Name is required.")
-            .MaximumLength(200).WithMessage("Name must not exceed 200 characters.")
-            .Matches(@"^[^<>]*$").WithMessage("Name must not contain HTML tags.");
+            .NotEmpty().WithMessage("O nome é obrigatório.")
+            .MaximumLength(200).WithMessage("O nome não pode ultrapassar 200 caracteres.")
+            .Matches(@"^[^<>]*$").WithMessage("O nome não pode conter tags HTML.");
 
         RuleFor(x => x.Description)
-            .MaximumLength(500).WithMessage("Description must not exceed 500 characters.")
-            .Matches(@"^[^<>]*$").WithMessage("Description must not contain HTML tags.")
+            .MaximumLength(500).WithMessage("A descrição não pode ultrapassar 500 caracteres.")
+            .Matches(@"^[^<>]*$").WithMessage("A descrição não pode conter tags HTML.")
             .When(x => x.Description is not null);
 
         RuleFor(x => x.Price)
-            .GreaterThan(0).WithMessage("Price must be greater than zero.");
+            .GreaterThan(0).WithMessage("O preço deve ser maior que zero.");
 
         RuleFor(x => x.StockQuantity)
-            .GreaterThanOrEqualTo(0).WithMessage("Stock quantity must be zero or greater.");
+            .GreaterThanOrEqualTo(0).WithMessage("A quantidade em estoque deve ser zero ou maior.");
 
-        // CategoryId is optional on update; if provided, it must reference an existing category.
+        // CategoryId é opcional no update; se fornecido, deve referenciar uma categoria existente.
         When(x => !string.IsNullOrEmpty(x.CategoryId), () =>
         {
             RuleFor(x => x.CategoryId)
                 .MustAsync(async (id, ct) => await categoryRepository.ExistsAsync(id!, ct))
-                .WithMessage("Category not found.");
+                .WithMessage("Categoria não encontrada.");
         });
     }
 }

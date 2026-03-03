@@ -8,7 +8,7 @@ public sealed class UpdateStockCommandValidator : AbstractValidator<UpdateStockC
     public UpdateStockCommandValidator()
     {
         RuleFor(x => x.Quantity)
-            .GreaterThanOrEqualTo(0).WithMessage("Stock quantity must be zero or greater.")
-            .LessThanOrEqualTo(1_000_000).WithMessage("Stock quantity must not exceed 1,000,000.");
+            .GreaterThanOrEqualTo(0).WithMessage("A quantidade em estoque deve ser zero ou maior.")
+            .LessThanOrEqualTo(1_000_000).WithMessage("A quantidade em estoque não pode ultrapassar 1.000.000.");
     }
 }

@@ -9,18 +9,18 @@ public sealed class UpdateCategoryCommandValidator : AbstractValidator<UpdateCat
     public UpdateCategoryCommandValidator(ICategoryRepository categoryRepository)
     {
         RuleFor(x => x.Id)
-            .NotEmpty().WithMessage("Id is required.");
+            .NotEmpty().WithMessage("O identificador é obrigatório.");
 
         RuleFor(x => x.Name)
-            .NotEmpty().WithMessage("Name is required.")
-            .MaximumLength(100).WithMessage("Name must not exceed 100 characters.")
-            .Matches(@"^[^<>]*$").WithMessage("Name must not contain HTML tags.")
+            .NotEmpty().WithMessage("O nome é obrigatório.")
+            .MaximumLength(100).WithMessage("O nome não pode ultrapassar 100 caracteres.")
+            .Matches(@"^[^<>]*$").WithMessage("O nome não pode conter tags HTML.")
             .MustAsync(async (cmd, name, ct) => !await categoryRepository.ExistsByNameAsync(name, cmd.Id, ct))
-            .WithMessage("A category with this name already exists.");
+            .WithMessage("Já existe uma categoria com este nome.");
 
         RuleFor(x => x.Description)
-            .MaximumLength(500).WithMessage("Description must not exceed 500 characters.")
-            .Matches(@"^[^<>]*$").WithMessage("Description must not contain HTML tags.")
+            .MaximumLength(500).WithMessage("A descrição não pode ultrapassar 500 caracteres.")
+            .Matches(@"^[^<>]*$").WithMessage("A descrição não pode conter tags HTML.")
             .When(x => x.Description is not null);
     }
 }
