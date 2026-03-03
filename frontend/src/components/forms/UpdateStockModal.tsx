@@ -24,7 +24,8 @@ const stockSchema = z.object({
   quantity: z
     .number({ error: "Quantidade é obrigatória" })
     .int()
-    .min(0, "Quantidade deve ser maior ou igual a zero"),
+    .min(0, "Quantidade deve ser maior ou igual a zero")
+    .max(1_000_000, "Quantidade não pode ultrapassar 1.000.000"),
 });
 
 type StockFormData = z.infer<typeof stockSchema>;
@@ -82,6 +83,8 @@ export default function UpdateStockModal({
               id="quantity"
               type="number"
               min={0}
+              max={1_000_000}
+              autoFocus
               {...register("quantity", { valueAsNumber: true })}
             />
             {errors.quantity && (

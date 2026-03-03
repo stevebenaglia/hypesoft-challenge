@@ -116,7 +116,7 @@ export default function ProductFormModal({
             <Label htmlFor="name">
               Nome <span className="text-red-500">*</span>
             </Label>
-            <Input id="name" {...register("name")} />
+            <Input id="name" autoFocus {...register("name")} />
             {errors.name && (
               <p className="text-xs text-red-500">{errors.name.message}</p>
             )}
