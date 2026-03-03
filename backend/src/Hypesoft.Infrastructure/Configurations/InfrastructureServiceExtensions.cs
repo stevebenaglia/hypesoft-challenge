@@ -7,6 +7,7 @@ using Hypesoft.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace Hypesoft.Infrastructure.Configurations;
@@ -21,6 +22,11 @@ public static class InfrastructureServiceExtensions
             ?? throw new InvalidOperationException("MongoDB:ConnectionString is not configured.");
         var databaseName = configuration["MongoDB:DatabaseName"]
             ?? throw new InvalidOperationException("MongoDB:DatabaseName is not configured.");
+
+        // Store decimal as Decimal128 (BSON numeric type) instead of the default string representation.
+        // TryRegisterSerializer is used to avoid duplicate-registration errors in test hosts.
+        MongoDB.Bson.Serialization.BsonSerializer.TryRegisterSerializer(
+            new MongoDB.Bson.Serialization.Serializers.DecimalSerializer(BsonType.Decimal128));
 
         var mongoClient = new MongoClient(connectionString);
         services.AddSingleton<IMongoClient>(mongoClient);

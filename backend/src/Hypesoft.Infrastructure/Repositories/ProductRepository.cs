@@ -145,7 +145,10 @@ public sealed class ProductRepository : IProductRepository
             new BsonDocument("$group", new BsonDocument
             {
                 { "_id", BsonNull.Value },
-                { "total", new BsonDocument("$sum", new BsonDocument("$multiply", new BsonArray { "$Price", "$StockQuantity" })) }
+                { "total", new BsonDocument("$sum", new BsonDocument("$multiply", new BsonArray {
+                new BsonDocument("$toDecimal", "$Price"),
+                new BsonDocument("$toDecimal", "$StockQuantity")
+            })) }
             })
         };
 
