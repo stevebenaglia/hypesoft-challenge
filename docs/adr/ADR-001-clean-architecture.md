@@ -1,7 +1,38 @@
 # ADR-001: Clean Architecture + Domain-Driven Design
 
-- **Status**: Accepted
-- **Date**: 2025-01-15
+- **Status**: Aceito / Accepted
+- **Data / Date**: 2025-01-15
+
+---
+
+## Contexto
+
+O sistema precisa de uma separação clara entre regras de negócio e preocupações de infraestrutura para permitir a evolução independente de cada camada, facilitar os testes e garantir que a lógica de domínio não seja contaminada por detalhes de framework ou banco de dados. Múltiplos membros da equipe trabalharão em camadas distintas simultaneamente.
+
+## Decisão
+
+Adotar **Clean Architecture** combinada com princípios de **Domain-Driven Design (DDD)**, estruturada em quatro projetos independentes:
+
+- `Hypesoft.Domain` — entidades, objetos de valor, eventos de domínio, interfaces de repositório, serviços de domínio. Zero dependências de bibliotecas externas.
+- `Hypesoft.Application` — commands, queries, handlers, DTOs, validators, interfaces de aplicação. Depende apenas do Domain.
+- `Hypesoft.Infrastructure` — DbContext EF Core, implementações de repositório, serviços de cache, integrações externas. Depende do Application.
+- `Hypesoft.API` — controllers, middlewares, extensions, configuração de DI. Depende do Application e Infrastructure.
+
+Fluxo de dependências: `API → Application ← Infrastructure`, com `Domain` no centro sem dependências externas.
+
+## Consequências
+
+**Positivas:**
+- A lógica de domínio é totalmente isolada e testável sem mock de infraestrutura.
+- A infraestrutura pode ser substituída (ex: trocar MongoDB por PostgreSQL) sem tocar em Application ou Domain.
+- Cada camada evolui de forma independente, facilitando o desenvolvimento paralelo.
+- Limites claros facilitam o onboarding de novos membros.
+
+**Negativas:**
+- Mais boilerplate comparado a uma arquitetura em camadas simples (projetos adicionais, profiles de mapeamento).
+- Commands/Queries precisam ser mapeados para entidades de domínio e de volta para DTOs, adicionando overhead do AutoMapper.
+
+---
 
 ## Context
 

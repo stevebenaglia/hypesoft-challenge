@@ -1,7 +1,37 @@
-# ADR-002: MongoDB as Primary Database
+# ADR-002: MongoDB como Banco de Dados Principal / MongoDB as Primary Database
 
-- **Status**: Accepted
-- **Date**: 2025-01-15
+- **Status**: Aceito / Accepted
+- **Data / Date**: 2025-01-15
+
+---
+
+## Contexto
+
+O sistema de inventário gerencia produtos e categorias. Os documentos de produtos contêm dados aninhados (referência de categoria, metadados) e podem evoluir em schema ao longo do tempo. A equipe tem experiência com bancos de dados de documentos, e escalabilidade horizontal é um requisito futuro. Busca de texto completo em nome e descrição de produtos é necessária sem um mecanismo de busca separado.
+
+## Decisão
+
+Usar **MongoDB** como banco único, acessado via:
+
+1. **MongoDB.EntityFrameworkCore** (v8.1.0) — provider EF Core para queries LINQ, configuração de entidades e materialização de tipos.
+2. **MongoDB.Driver** (v2.28.0) — driver nativo usado diretamente em `ProductRepository` para operações avançadas: busca `$text`, pipelines de agregação (`GetCountByCategoryAsync`, `GetTotalStockValueAsync`) e criação de índices.
+
+Um **índice de texto** em `{ Name: "text", Description: "text" }` é criado na inicialização pelo `DatabaseInitializer` para suportar busca de texto completo eficiente sem necessidade de Elasticsearch ou Atlas Search.
+
+## Consequências
+
+**Positivas:**
+- Schema flexível acomoda extensões futuras de atributos de produtos sem migrações.
+- O operador nativo `$text` fornece busca tokenizada de texto completo nativamente.
+- Escalonamento horizontal via sharding é suportado nativamente.
+- O pipeline de agregação permite cálculos eficientes no servidor (valor total do estoque, produtos por categoria).
+
+**Negativas:**
+- O provider EF Core para MongoDB é menos maduro que os providers relacionais; queries LINQ complexas podem exigir fallback para o driver nativo.
+- Sem transações ACID entre múltiplos documentos sem gerenciamento explícito de sessão.
+- A abordagem dual-driver (EF Core + driver nativo no mesmo repositório) adiciona complexidade, mas foi necessária para suporte a queries avançadas.
+
+---
 
 ## Context
 

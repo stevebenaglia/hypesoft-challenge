@@ -1,7 +1,38 @@
 # ADR-003: CQRS + MediatR
 
-- **Status**: Accepted
-- **Date**: 2025-01-15
+- **Status**: Aceito / Accepted
+- **Data / Date**: 2025-01-15
+
+---
+
+## Contexto
+
+A camada de Application precisa de uma forma consistente de despachar commands e queries dos controllers para os handlers sem acoplamento direto. Preocupações transversais (validação, logging, monitoramento de performance) devem ser aplicadas uniformemente em todos os casos de uso. À medida que o sistema cresce, adicionar novos casos de uso não deve exigir modificação do código existente.
+
+## Decisão
+
+Adotar **CQRS (Command Query Responsibility Segregation)** via **MediatR** (v12.4.1):
+
+- **Commands** (`CreateProductCommand`, `UpdateStockCommand`, etc.) — mutam estado, retornam um DTO.
+- **Queries** (`GetProductsQuery`, `GetDashboardSummaryQuery`, etc.) — leem estado, retornam um DTO ou coleção.
+- **Pipeline Behaviors** — dois behaviors transversais registrados globalmente:
+  - `ValidationPipelineBehavior<TRequest, TResponse>` — executa todos os validators FluentValidation antes do handler; retorna 422 em caso de falha.
+  - `LoggingPipelineBehavior<TRequest, TResponse>` — registra início/fim da requisição com duração; emite warning para requisições que excedam 500ms.
+
+## Consequências
+
+**Positivas:**
+- Controllers são enxutos — apenas despachamos commands/queries via `IMediator.Send()`.
+- Preocupações transversais (validação, logging) são adicionadas uma única vez como pipeline behaviors, sem duplicação por handler.
+- Cada handler tem responsabilidade única e é testável unitariamente de forma independente.
+- Adicionar novos casos de uso requer apenas um novo par Command/Query + Handler, sem alterações no código existente (Princípio Aberto/Fechado).
+
+**Negativas:**
+- A indireção introduzida pelo MediatR pode dificultar o rastreamento do fluxo de chamadas sem ferramentas adequadas.
+- Leve overhead de performance pela reflexão do pipeline; negligível nessa escala.
+- Operações CRUD simples ganham pouco com CQRS; o padrão agrega mais valor à medida que a complexidade cresce.
+
+---
 
 ## Context
 

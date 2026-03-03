@@ -1,7 +1,38 @@
-# ADR-005: Next.js App Router with React Server Components
+# ADR-005: Next.js App Router com React Server Components / Next.js App Router with React Server Components
 
-- **Status**: Accepted
-- **Date**: 2025-01-15
+- **Status**: Aceito / Accepted
+- **Data / Date**: 2025-01-15
+
+---
+
+## Contexto
+
+O frontend requer renderização server-side para performance de carregamento inicial e SEO, interatividade client-side para formulários e filtros em tempo real, e uma separação clara entre busca de dados e renderização de UI. O App Router do Next.js 14+ introduz React Server Components (RSC) como padrão, o que muda significativamente o modelo de busca de dados em relação ao Pages Router.
+
+## Decisão
+
+Usar **Next.js 16** com o **App Router** e React Server Components:
+
+- **Server Components** (padrão): As páginas Dashboard, Products e Categories são `async` server components. Elas chamam `getServerSession()` e `apiFetch()` diretamente no servidor, enviando HTML com dados pré-renderizados.
+- **Client Components** (`"use client"`): Partes interativas — `ProductsClient`, `CategoriesClient`, `DashboardView` — são client components que usam TanStack Query para estado local e mutations.
+- **Route Groups**: O grupo de layout `(authenticated)/` aplica verificação de sessão server-side e redireciona para `/auth/signin` se não autenticado.
+- **Middleware** (`middleware.ts`): `withAuth` do `next-auth/middleware` protege todas as rotas na edge, antes que a requisição chegue ao server component.
+- **Dynamic imports**: `DashboardChart` usa `dynamic(() => import(...), { ssr: false })` para evitar problemas de hidratação do Chart.js no servidor.
+
+## Consequências
+
+**Positivas:**
+- Carregamento inicial mais rápido — HTML é pré-renderizado com dados no servidor.
+- Server Components eliminam waterfalls de busca de dados client-side no render inicial.
+- Verificação de autenticação ocorre em dois níveis (middleware + layout), prevenindo acesso não autorizado.
+- `ssr: false` no Chart.js evita incompatibilidades de hidratação do canvas.
+
+**Negativas:**
+- O modelo mental de RSC (limite server vs client) adiciona complexidade em relação ao Pages Router.
+- `next-auth` v4 foi projetado para o Pages Router; a integração com App Router requer workarounds (`getServerSession` em vez de `getSession`).
+- A mistura de server e client components requer serialização cuidadosa de props (sem funções, sem instâncias de classe entre os limites).
+
+---
 
 ## Context
 

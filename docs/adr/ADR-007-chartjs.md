@@ -1,7 +1,35 @@
-# ADR-007: Chart.js over Recharts for Dashboard Visualizations
+# ADR-007: Chart.js em vez de Recharts para Visualizações / Chart.js over Recharts for Dashboard Visualizations
 
-- **Status**: Accepted
-- **Date**: 2025-01-15
+- **Status**: Aceito / Accepted
+- **Data / Date**: 2025-01-15
+
+---
+
+## Contexto
+
+O dashboard requer um gráfico de barras exibindo a contagem de produtos agrupados por categoria. Duas bibliotecas populares de gráficos para React foram avaliadas: **Recharts** (baseado em SVG, nativa React) e **Chart.js** com **react-chartjs-2** (baseado em Canvas, agnóstica de framework).
+
+## Decisão
+
+Usar **Chart.js v4** com **react-chartjs-2 v5**:
+
+- Renderiza em `<canvas>`, evitando overhead de DOM SVG para datasets com muitos pontos de dados.
+- `react-chartjs-2` fornece um wrapper React thin com acesso completo às opções de configuração do Chart.js.
+- Carregado via `next/dynamic` com `{ ssr: false }` para evitar erros de hidratação server-side com canvas (a API canvas não está disponível no Node.js).
+
+## Consequências
+
+**Positivas:**
+- Renderização em canvas é mais performática que SVG para datasets grandes.
+- Chart.js tem uma API de configuração madura e bem documentada para estilização detalhada.
+- Amplamente adotado com vasta comunidade e exemplos disponíveis.
+
+**Negativas:**
+- Gráficos baseados em canvas são menos acessíveis que SVG (sem nós DOM para leitores de tela sem atributos ARIA adicionais).
+- Requer dynamic import com `{ ssr: false }`, introduzindo um flash de carregamento no render inicial.
+- Recharts teria sido mais idiomático em um codebase centrado em React (composição declarativa de componentes vs objetos de configuração imperativos).
+
+---
 
 ## Context
 

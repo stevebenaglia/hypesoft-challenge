@@ -1,7 +1,40 @@
-# ADR-006: In-Process Distributed Cache Instead of Redis
+# ADR-006: Cache In-Process em vez de Redis / In-Process Distributed Cache Instead of Redis
 
-- **Status**: Accepted
-- **Date**: 2025-01-15
+- **Status**: Aceito / Accepted
+- **Data / Date**: 2025-01-15
+
+---
+
+## Contexto
+
+Queries de leitura frequentes (listagem de produtos, lista de categorias, resumo do dashboard) atingem o MongoDB a cada requisição. Uma camada de cache é necessária para reduzir latência e carga no banco de dados. A escolha padrão enterprise para cache distribuído é o Redis, mas isso introduz uma dependência adicional de infraestrutura.
+
+## Decisão
+
+Usar **`IDistributedCache` com implementação in-memory** (`AddDistributedMemoryCache`) em vez de Redis:
+
+- `ICacheService` / `DistributedCacheService` encapsula `IDistributedCache` com serialização JSON e suporte a TTL.
+- `ICacheInvalidationService` / `CacheInvalidationService` implementa um **padrão de contador de geração**: uma chave de geração compartilhada é incrementada a cada mutação de produto; todas as chaves de cache de lista de produtos embutem o número de geração (`products:g{gen}:p{page}:s{size}:...`), tornando entradas obsoletas inacessíveis sem exclusão explícita.
+- TTLs: Categorias = 5 min, Listas de produtos = 2 min, Produto por ID = 5 min, Dashboard = 2 min.
+
+A abstração (`ICacheService`) é projetada para que a implementação possa ser trocada para Redis (`AddStackExchangeRedisCache`) alterando apenas um registro de DI em `InfrastructureServiceExtensions`.
+
+## Consequências
+
+**Positivas:**
+- Nenhum container adicional necessário — reduz a complexidade do Docker Compose e o tempo de cold-start.
+- Zero overhead de rede para leituras de cache (mesmo processo).
+- Suficiente para implantação em instância única, que cobre o escopo atual.
+- A estratégia de invalidação de cache (geração bump) funciona corretamente sem Lua scripts ou funcionalidades específicas do Redis.
+
+**Negativas:**
+- O cache não é compartilhado entre múltiplas instâncias da API — um scale-out horizontal exigiria substituição da implementação por Redis.
+- Cache in-memory consome memória do processo da API; datasets grandes podem causar pressão.
+- O cache é perdido ao reiniciar a API, causando um spike de cold-start no MongoDB.
+
+**Caminho de migração**: Substituir `services.AddDistributedMemoryCache()` por `services.AddStackExchangeRedisCache(...)` em `InfrastructureServiceExtensions.cs`. Nenhuma outra alteração necessária.
+
+---
 
 ## Context
 
