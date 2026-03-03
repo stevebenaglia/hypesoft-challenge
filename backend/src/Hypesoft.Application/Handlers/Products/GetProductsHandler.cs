@@ -36,7 +36,7 @@ public sealed class GetProductsHandler : IRequestHandler<GetProductsQuery, Paged
         // The generation is bumped on every product mutation, effectively invalidating
         // all paginated product-list entries without pattern-based key deletion.
         var generation = await _cacheInvalidation.GetProductListGenerationAsync(cancellationToken);
-        var cacheKey = CacheKeys.ProductList(generation, request.PageNumber, request.PageSize, request.SearchTerm, request.CategoryId);
+        var cacheKey = CacheKeys.ProductList(generation, request.PageNumber, request.PageSize, request.SearchTerm, request.CategoryId, request.LowStockOnly);
 
         var cached = await _cache.GetAsync<PagedResultDto<ProductDto>>(cacheKey, cancellationToken);
         if (cached is not null)
@@ -47,6 +47,7 @@ public sealed class GetProductsHandler : IRequestHandler<GetProductsQuery, Paged
             request.PageSize,
             request.SearchTerm,
             request.CategoryId,
+            request.LowStockOnly,
             cancellationToken);
 
         var dtos = _mapper.Map<IEnumerable<ProductDto>>(items).ToList();

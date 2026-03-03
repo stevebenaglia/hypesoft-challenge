@@ -28,17 +28,21 @@ public sealed class ProductRepository : IProductRepository
         int pageSize,
         string? searchTerm,
         string? categoryId,
+        bool lowStockOnly = false,
         CancellationToken cancellationToken = default)
     {
         // When a search term is provided, delegate to the $text path which uses the
         // compound text index on { Name, Description } instead of an unindexed regex scan.
         if (!string.IsNullOrWhiteSpace(searchTerm))
-            return await GetPagedByTextSearchAsync(searchTerm, categoryId, pageNumber, pageSize, cancellationToken);
+            return await GetPagedByTextSearchAsync(searchTerm, categoryId, lowStockOnly, pageNumber, pageSize, cancellationToken);
 
         var query = _context.Products.AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(categoryId))
             query = query.Where(p => p.CategoryId == categoryId);
+
+        if (lowStockOnly)
+            query = query.Where(p => p.StockQuantity < DomainConstants.LowStockThreshold);
 
         var totalCount = await query.CountAsync(cancellationToken);
 
@@ -60,6 +64,7 @@ public sealed class ProductRepository : IProductRepository
     private async Task<(IEnumerable<Product> Items, int TotalCount)> GetPagedByTextSearchAsync(
         string searchTerm,
         string? categoryId,
+        bool lowStockOnly,
         int pageNumber,
         int pageSize,
         CancellationToken cancellationToken)
@@ -68,6 +73,9 @@ public sealed class ProductRepository : IProductRepository
 
         if (!string.IsNullOrWhiteSpace(categoryId))
             filter &= Builders<BsonDocument>.Filter.Eq("CategoryId", categoryId);
+
+        if (lowStockOnly)
+            filter &= Builders<BsonDocument>.Filter.Lt("StockQuantity", DomainConstants.LowStockThreshold);
 
         var totalCount = (int)await _collection.CountDocumentsAsync(filter, cancellationToken: cancellationToken);
 

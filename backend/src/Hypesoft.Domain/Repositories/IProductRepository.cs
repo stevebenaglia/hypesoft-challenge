@@ -13,6 +13,7 @@ public interface IProductRepository
         int pageSize,
         string? searchTerm,
         string? categoryId,
+        bool lowStockOnly = false,
         CancellationToken cancellationToken = default);
 
     Task<Product> AddAsync(Product product, CancellationToken cancellationToken = default);

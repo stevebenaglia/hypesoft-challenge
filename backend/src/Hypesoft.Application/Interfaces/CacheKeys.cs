@@ -19,6 +19,6 @@ public static class CacheKeys
     /// Builds a product-list cache key scoped to the current generation.
     /// Pass the value returned by <see cref="ICacheInvalidationService.GetProductListGenerationAsync"/>.
     /// </summary>
-    public static string ProductList(int generation, int page, int size, string? search, string? categoryId)
-        => $"products:g{generation}:p{page}:s{size}:q{search ?? ""}:c{categoryId ?? ""}";
+    public static string ProductList(int generation, int page, int size, string? search, string? categoryId, bool lowStockOnly = false)
+        => $"products:g{generation}:p{page}:s{size}:q{search ?? ""}:c{categoryId ?? ""}:ls{(lowStockOnly ? 1 : 0)}";
 }

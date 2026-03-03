@@ -43,9 +43,10 @@ public sealed class ProductsController : ControllerBase
         [FromQuery] int pageSize = 10,
         [FromQuery] string? searchTerm = null,
         [FromQuery] string? categoryId = null,
+        [FromQuery] bool lowStockOnly = false,
         CancellationToken cancellationToken = default)
     {
-        var query = new GetProductsQuery(pageNumber, pageSize, searchTerm, categoryId);
+        var query = new GetProductsQuery(pageNumber, pageSize, searchTerm, categoryId, lowStockOnly);
         var result = await _mediator.Send(query, cancellationToken);
         return Ok(result);
     }
