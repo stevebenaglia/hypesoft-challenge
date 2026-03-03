@@ -7,6 +7,12 @@ using MediatR;
 
 namespace Hypesoft.Application.Handlers.Dashboard;
 
+/// <summary>
+/// Handles <see cref="GetDashboardSummaryQuery"/>. Aggregates dashboard metrics in parallel
+/// (total product count, total stock value, per-category counts, low-stock list) then
+/// caches the assembled <see cref="DashboardSummaryDto"/> for 2 minutes.
+/// Cache is invalidated on any product mutation via <see cref="ICacheInvalidationService"/>.
+/// </summary>
 public sealed class GetDashboardSummaryHandler : IRequestHandler<GetDashboardSummaryQuery, DashboardSummaryDto>
 {
     private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(2);

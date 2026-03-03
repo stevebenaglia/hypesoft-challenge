@@ -12,6 +12,12 @@ using MediatR;
 
 namespace Hypesoft.Application.Handlers.Products;
 
+/// <summary>
+/// Handles <see cref="CreateProductCommand"/>. Constructs domain value objects, persists the new
+/// <see cref="Hypesoft.Domain.Entities.Product"/>, invalidates the product-list and dashboard caches,
+/// publishes a <see cref="Hypesoft.Domain.DomainEvents.Products.ProductCreatedEvent"/>, and returns
+/// the enriched DTO (with category name resolved).
+/// </summary>
 public sealed class CreateProductHandler : IRequestHandler<CreateProductCommand, ProductDto>
 {
     private readonly IProductRepository _productRepository;

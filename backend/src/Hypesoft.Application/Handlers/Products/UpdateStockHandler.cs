@@ -11,6 +11,13 @@ using MediatR;
 
 namespace Hypesoft.Application.Handlers.Products;
 
+/// <summary>
+/// Handles <see cref="UpdateStockCommand"/>. Loads the product, applies the new
+/// <see cref="Hypesoft.Domain.ValueObjects.StockQuantity"/> via the domain method,
+/// persists the change, invalidates the product's individual cache entry plus the
+/// product-list generation and dashboard, then publishes a
+/// <see cref="Hypesoft.Domain.DomainEvents.Products.StockUpdatedEvent"/>.
+/// </summary>
 public sealed class UpdateStockHandler : IRequestHandler<UpdateStockCommand, ProductDto>
 {
     private readonly IProductRepository _productRepository;

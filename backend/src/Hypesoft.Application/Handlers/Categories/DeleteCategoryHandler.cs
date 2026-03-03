@@ -8,6 +8,12 @@ using MediatR;
 
 namespace Hypesoft.Application.Handlers.Categories;
 
+/// <summary>
+/// Handles <see cref="DeleteCategoryCommand"/>. Enforces the business rule that a category
+/// cannot be deleted while it has associated products. On success, removes the category,
+/// invalidates the categories cache, and publishes a
+/// <see cref="Hypesoft.Domain.DomainEvents.Categories.CategoryDeletedEvent"/>.
+/// </summary>
 public sealed class DeleteCategoryHandler : IRequestHandler<DeleteCategoryCommand, Unit>
 {
     private readonly ICategoryRepository _categoryRepository;

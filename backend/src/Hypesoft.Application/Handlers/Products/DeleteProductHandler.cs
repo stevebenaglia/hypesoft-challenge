@@ -8,6 +8,12 @@ using MediatR;
 
 namespace Hypesoft.Application.Handlers.Products;
 
+/// <summary>
+/// Handles <see cref="DeleteProductCommand"/>. Loads the product (throws
+/// <see cref="Hypesoft.Domain.Exceptions.NotFoundException"/> if absent), deletes it,
+/// invalidates all related cache entries, and publishes a
+/// <see cref="Hypesoft.Domain.DomainEvents.Products.ProductDeletedEvent"/>.
+/// </summary>
 public sealed class DeleteProductHandler : IRequestHandler<DeleteProductCommand, Unit>
 {
     private readonly IProductRepository _productRepository;

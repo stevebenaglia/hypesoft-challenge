@@ -11,6 +11,11 @@ using MediatR;
 
 namespace Hypesoft.Application.Handlers.Categories;
 
+/// <summary>
+/// Handles <see cref="CreateCategoryCommand"/>. Creates and persists a new
+/// <see cref="Hypesoft.Domain.Entities.Category"/>, invalidates the categories cache,
+/// and publishes a <see cref="Hypesoft.Domain.DomainEvents.Categories.CategoryCreatedEvent"/>.
+/// </summary>
 public sealed class CreateCategoryHandler : IRequestHandler<CreateCategoryCommand, CategoryDto>
 {
     private readonly ICategoryRepository _categoryRepository;

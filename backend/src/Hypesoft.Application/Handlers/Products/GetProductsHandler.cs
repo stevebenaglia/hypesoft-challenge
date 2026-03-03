@@ -7,6 +7,11 @@ using MediatR;
 
 namespace Hypesoft.Application.Handlers.Products;
 
+/// <summary>
+/// Handles <see cref="GetProductsQuery"/>. Returns a paginated, optionally filtered and searched
+/// list of products. Results are cached using a generation-counter key so that any product mutation
+/// automatically invalidates all affected pages without requiring pattern-based key deletion.
+/// </summary>
 public sealed class GetProductsHandler : IRequestHandler<GetProductsQuery, PagedResultDto<ProductDto>>
 {
     private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(2);

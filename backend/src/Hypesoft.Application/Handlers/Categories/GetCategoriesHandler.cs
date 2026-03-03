@@ -7,6 +7,13 @@ using MediatR;
 
 namespace Hypesoft.Application.Handlers.Categories;
 
+/// <summary>
+/// Handles <see cref="GetCategoriesQuery"/>. Returns all categories enriched with their
+/// live product count. The count is computed in parallel with the category fetch via
+/// <c>GetCountByCategoryAsync</c> and the assembled list is cached for 5 minutes.
+/// Cache is invalidated by <see cref="ICacheInvalidationService"/> on any category or
+/// product mutation.
+/// </summary>
 public sealed class GetCategoriesHandler : IRequestHandler<GetCategoriesQuery, IEnumerable<CategoryDto>>
 {
     private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
