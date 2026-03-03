@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,18 @@ import {
 import CategoryFormModal from "@/components/forms/CategoryFormModal";
 import { useDeleteCategory } from "@/hooks/useCategoryMutations";
 import { toast } from "sonner";
+import { ChevronsUpDown, ChevronUp, ChevronDown } from "lucide-react";
 import type { Category } from "@/types/api";
+
+type SortField = "name" | "productCount";
+type SortDir = "asc" | "desc";
+
+function SortIcon({ field, sortField, sortDir }: { field: SortField; sortField: SortField | null; sortDir: SortDir }) {
+  if (sortField !== field) return <ChevronsUpDown className="ml-1 inline h-3.5 w-3.5 text-zinc-400" />;
+  return sortDir === "asc"
+    ? <ChevronUp className="ml-1 inline h-3.5 w-3.5" />
+    : <ChevronDown className="ml-1 inline h-3.5 w-3.5" />;
+}
 
 interface CategoriesClientProps {
   initialCategories: Category[];
@@ -36,8 +47,29 @@ export default function CategoriesClient({
   const router = useRouter();
   const [categories, setCategories] = useState<Category[]>(initialCategories);
   const [modal, setModal] = useState<ModalState>({ type: "none" });
+  const [sortField, setSortField] = useState<SortField | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
 
   const isAdmin = session?.user.roles.includes("admin");
+
+  function toggleSort(field: SortField) {
+    if (sortField === field) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortDir("asc");
+    }
+  }
+
+  const sorted = useMemo(() => {
+    if (!sortField) return categories;
+    return [...categories].sort((a, b) => {
+      const valA = a[sortField];
+      const valB = b[sortField];
+      const cmp = typeof valA === "string" ? valA.localeCompare(valB as string) : (valA as number) - (valB as number);
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+  }, [categories, sortField, sortDir]);
 
   const deleteMutation = useDeleteCategory({
     onSuccess: (deletedId) => {
@@ -87,11 +119,20 @@ export default function CategoriesClient({
           <table className="min-w-full divide-y divide-zinc-100 dark:divide-zinc-700">
             <thead>
               <tr className="bg-zinc-50 dark:bg-zinc-900">
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                  Nome
+                <th
+                  className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+                  onClick={() => toggleSort("name")}
+                >
+                  Nome <SortIcon field="name" sortField={sortField} sortDir={sortDir} />
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">
                   Descrição
+                </th>
+                <th
+                  className="cursor-pointer select-none px-6 py-3 text-center text-xs font-semibold uppercase tracking-wide text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+                  onClick={() => toggleSort("productCount")}
+                >
+                  Produtos <SortIcon field="productCount" sortField={sortField} sortDir={sortDir} />
                 </th>
                 {isAdmin && (
                   <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500">
@@ -101,7 +142,7 @@ export default function CategoriesClient({
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100 dark:divide-zinc-700">
-              {categories.map((category) => (
+              {sorted.map((category) => (
                 <tr
                   key={category.id}
                   className="hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
@@ -111,6 +152,9 @@ export default function CategoriesClient({
                   </td>
                   <td className="px-6 py-4 text-sm text-zinc-500 dark:text-zinc-400">
                     {category.description || "—"}
+                  </td>
+                  <td className="px-6 py-4 text-center text-sm text-zinc-600 dark:text-zinc-400">
+                    {category.productCount}
                   </td>
                   {isAdmin && (
                     <td className="px-6 py-4 text-right">
@@ -125,9 +169,7 @@ export default function CategoriesClient({
                         <Button
                           variant="destructive"
                           size="sm"
-                          onClick={() =>
-                            setModal({ type: "delete", category })
-                          }
+                          onClick={() => setModal({ type: "delete", category })}
                         >
                           Excluir
                         </Button>

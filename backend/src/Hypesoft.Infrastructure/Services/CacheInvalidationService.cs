@@ -22,6 +22,7 @@ public sealed class CacheInvalidationService : ICacheInvalidationService
         var tasks = new List<Task>
         {
             _cache.RemoveAsync(CacheKeys.DashboardSummary, cancellationToken),
+            _cache.RemoveAsync(CacheKeys.AllCategories, cancellationToken),
             BumpProductListGenerationAsync(cancellationToken)
         };
 
