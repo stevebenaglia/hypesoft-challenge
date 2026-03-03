@@ -1,0 +1,591 @@
+{
+  "info": {
+    "name": "Hypesoft Inventory API",
+    "_postman_id": "hypesoft-inventory-api-v1",
+    "description": "Collection for the Hypesoft Inventory Management API.\n\n**Setup:**\n1. Set `baseUrl` to `http://localhost/api` (Docker) or `http://localhost:5000/api` (local).\n2. Use the **Auth > Get Token** request to obtain a JWT from Keycloak.\n3. Copy the `access_token` value and paste it into the `accessToken` collection variable.\n\n**Pre-configured accounts:**\n- `admin / admin` — full access (admin + user roles)\n- `user / user` — read-only access (user role only)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl",     "value": "http://localhost/api",    "type": "string" },
+    { "key": "keycloakUrl", "value": "http://localhost:8080",   "type": "string" },
+    { "key": "accessToken", "value": "",                         "type": "string" },
+    { "key": "productId",   "value": "",                         "type": "string" },
+    { "key": "categoryId",  "value": "",                         "type": "string" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{accessToken}}", "type": "string" }
+    ]
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "description": "Obtain a JWT access token from Keycloak using Resource Owner Password Credentials (for testing only — use Authorization Code flow in production).",
+      "item": [
+        {
+          "name": "Get Token (admin)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "grant_type",    "value": "password" },
+                { "key": "client_id",     "value": "hypesoft-frontend" },
+                { "key": "client_secret", "value": "hypesoft-secret" },
+                { "key": "username",      "value": "admin" },
+                { "key": "password",      "value": "admin" }
+              ]
+            },
+            "url": {
+              "raw": "{{keycloakUrl}}/realms/hypesoft/protocol/openid-connect/token",
+              "host": ["{{keycloakUrl}}"],
+              "path": ["realms", "hypesoft", "protocol", "openid-connect", "token"]
+            },
+            "description": "Returns an access_token for the admin user. Copy the access_token value into the `accessToken` collection variable."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.access_token) {",
+                  "    pm.collectionVariables.set('accessToken', json.access_token);",
+                  "    console.log('Token set successfully');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Token (user)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "grant_type",    "value": "password" },
+                { "key": "client_id",     "value": "hypesoft-frontend" },
+                { "key": "client_secret", "value": "hypesoft-secret" },
+                { "key": "username",      "value": "user" },
+                { "key": "password",      "value": "user" }
+              ]
+            },
+            "url": {
+              "raw": "{{keycloakUrl}}/realms/hypesoft/protocol/openid-connect/token",
+              "host": ["{{keycloakUrl}}"],
+              "path": ["realms", "hypesoft", "protocol", "openid-connect", "token"]
+            },
+            "description": "Returns an access_token for the read-only user."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.access_token) {",
+                  "    pm.collectionVariables.set('accessToken', json.access_token);",
+                  "    console.log('Token set successfully');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "description": "Manage product categories. Write operations require the `admin` role.",
+      "item": [
+        {
+          "name": "Get All Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories"]
+            },
+            "description": "Returns all categories ordered by name. Cached for 5 minutes."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "var json = pm.response.json();",
+                  "if (Array.isArray(json) && json.length > 0) {",
+                  "    pm.collectionVariables.set('categoryId', json[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Category by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories/{{categoryId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories", "{{categoryId}}"]
+            },
+            "description": "Returns a single category by ID. Returns 404 if not found."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has id field', () => pm.expect(pm.response.json()).to.have.property('id'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Category",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Eletrônicos\",\n  \"description\": \"Computadores, smartphones e acessórios\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories"]
+            },
+            "description": "Creates a new category. Requires `admin` role. Returns 201 with the created resource."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "var json = pm.response.json();",
+                  "pm.collectionVariables.set('categoryId', json.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Category",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Eletrônicos & Gadgets\",\n  \"description\": \"Computadores, smartphones, tablets e acessórios\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/categories/{{categoryId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories", "{{categoryId}}"]
+            },
+            "description": "Updates an existing category. Requires `admin` role. Returns 404 if not found."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Category",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories/{{categoryId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories", "{{categoryId}}"]
+            },
+            "description": "Deletes a category. Requires `admin` role. Returns 400 if the category has associated products. Returns 404 if not found."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "description": "Manage inventory products. Write operations require the `admin` role.",
+      "item": [
+        {
+          "name": "Get All Products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products?pageNumber=1&pageSize=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["products"],
+              "query": [
+                { "key": "pageNumber",   "value": "1" },
+                { "key": "pageSize",     "value": "10" },
+                { "key": "searchTerm",   "value": null, "disabled": true, "description": "Full-text search on name and description" },
+                { "key": "categoryId",   "value": null, "disabled": true, "description": "Filter by category ID" },
+                { "key": "lowStockOnly", "value": "false", "disabled": true, "description": "Show only products with stock < 10" }
+              ]
+            },
+            "description": "Returns a paginated list of products. Supports full-text search, category filtering, and low-stock filtering. Results cached for 2 minutes with generation-based invalidation."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "var json = pm.response.json();",
+                  "pm.test('Has pagination fields', () => {",
+                  "    pm.expect(json).to.have.property('data');",
+                  "    pm.expect(json).to.have.property('totalRecords');",
+                  "    pm.expect(json).to.have.property('totalPages');",
+                  "});",
+                  "if (json.data && json.data.length > 0) {",
+                  "    pm.collectionVariables.set('productId', json.data[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All Products (with search)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products?pageNumber=1&pageSize=10&searchTerm=notebook",
+              "host": ["{{baseUrl}}"],
+              "path": ["products"],
+              "query": [
+                { "key": "pageNumber",  "value": "1" },
+                { "key": "pageSize",    "value": "10" },
+                { "key": "searchTerm",  "value": "notebook" }
+              ]
+            },
+            "description": "Full-text search using MongoDB $text index on Name and Description fields."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All Products (low stock only)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products?pageNumber=1&pageSize=10&lowStockOnly=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["products"],
+              "query": [
+                { "key": "pageNumber",   "value": "1" },
+                { "key": "pageSize",     "value": "10" },
+                { "key": "lowStockOnly", "value": "true" }
+              ]
+            },
+            "description": "Returns products with stock quantity below 10 (LowStockThreshold)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Product by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products/{{productId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["products", "{{productId}}"]
+            },
+            "description": "Returns a single product by ID. Cached for 5 minutes. Returns 404 if not found."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has required fields', () => {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('id');",
+                  "    pm.expect(json).to.have.property('name');",
+                  "    pm.expect(json).to.have.property('price');",
+                  "    pm.expect(json).to.have.property('stockQuantity');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Notebook Dell XPS 15\",\n  \"description\": \"Laptop de alto desempenho com tela OLED 4K\",\n  \"price\": 12999.90,\n  \"stockQuantity\": 50,\n  \"categoryId\": \"{{categoryId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products",
+              "host": ["{{baseUrl}}"],
+              "path": ["products"]
+            },
+            "description": "Creates a new product. Requires `admin` role. Validates that categoryId exists. Returns 201 with Location header."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "var json = pm.response.json();",
+                  "pm.collectionVariables.set('productId', json.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Product",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Notebook Dell XPS 15 (2025)\",\n  \"description\": \"Laptop de alto desempenho com tela OLED 4K — edição 2025\",\n  \"price\": 13499.90,\n  \"stockQuantity\": 45,\n  \"categoryId\": \"{{categoryId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products/{{productId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["products", "{{productId}}"]
+            },
+            "description": "Updates all fields of an existing product. Requires `admin` role. Returns 404 if not found."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Stock",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 75\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products/{{productId}}/stock",
+              "host": ["{{baseUrl}}"],
+              "path": ["products", "{{productId}}", "stock"]
+            },
+            "description": "Updates only the stock quantity of a product. Requires `admin` role. Accepts quantity between 0 and 1,000,000. Publishes StockUpdatedEvent domain event."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Stock updated', () => {",
+                  "    pm.expect(pm.response.json().stockQuantity).to.equal(75);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Product",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products/{{productId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["products", "{{productId}}"]
+            },
+            "description": "Deletes a product by ID. Requires `admin` role. Returns 204 on success, 404 if not found."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "description": "Aggregated inventory metrics. Cached for 2 minutes.",
+      "item": [
+        {
+          "name": "Get Dashboard Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard",
+              "host": ["{{baseUrl}}"],
+              "path": ["dashboard"]
+            },
+            "description": "Returns: totalProducts, totalStockValue, lowStockCount, productsByCategory (array), lowStockProducts (array with id, name, stockQuantity, categoryName)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has all summary fields', () => {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('totalProducts');",
+                  "    pm.expect(json).to.have.property('totalStockValue');",
+                  "    pm.expect(json).to.have.property('lowStockCount');",
+                  "    pm.expect(json).to.have.property('productsByCategory');",
+                  "    pm.expect(json).to.have.property('lowStockProducts');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "description": "Health check endpoints — no authentication required.",
+      "item": [
+        {
+          "name": "Liveness",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/../health/live",
+              "raw": "http://localhost/health/live",
+              "host": ["http://localhost"],
+              "path": ["health", "live"]
+            },
+            "description": "Liveness probe — always returns 200 if the API process is running."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Readiness",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost/health/ready",
+              "host": ["http://localhost"],
+              "path": ["health", "ready"]
+            },
+            "description": "Readiness probe — checks MongoDB connectivity (3s timeout). Returns 200 if healthy, 503 if degraded."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('MongoDB is healthy', () => {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.status).to.equal('Healthy');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
