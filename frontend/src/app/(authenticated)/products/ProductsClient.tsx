@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, ChevronLeft, ChevronRight, ChevronsUpDown, ChevronUp, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Select,
@@ -26,13 +27,25 @@ import {
 import ProductFormModal from "@/components/forms/ProductFormModal";
 import UpdateStockModal from "@/components/forms/UpdateStockModal";
 import { useDeleteProduct } from "@/hooks/useProductMutations";
+import { productService } from "@/services/productService";
 import { formatCurrency, stockBadgeVariant } from "@/utils/formatters";
 import { toast } from "sonner";
 import type { Product, Category } from "@/types/api";
 
+const PAGE_SIZE = 10;
+
+type SortField = "name" | "price" | "stockQuantity";
+type SortDir = "asc" | "desc";
+
+function SortIcon({ field, sortField, sortDir }: { field: SortField; sortField: SortField | null; sortDir: SortDir }) {
+  if (sortField !== field) return <ChevronsUpDown className="ml-1 inline h-3.5 w-3.5 text-zinc-400" />;
+  return sortDir === "asc"
+    ? <ChevronUp className="ml-1 inline h-3.5 w-3.5" />
+    : <ChevronDown className="ml-1 inline h-3.5 w-3.5" />;
+}
+
 interface ProductsClientProps {
-  initialProducts: Product[];
-  categories: Category[];
+  initialCategories: Category[];
   error?: string;
 }
 
@@ -44,62 +57,104 @@ type ModalState =
   | { type: "delete"; product: Product };
 
 export default function ProductsClient({
-  initialProducts,
-  categories,
+  initialCategories,
   error,
 }: ProductsClientProps) {
   const { data: session } = useSession();
   const router = useRouter();
-  const [products, setProducts] = useState<Product[]>(initialProducts);
+  const queryClient = useQueryClient();
+
   const [modal, setModal] = useState<ModalState>({ type: "none" });
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [stockFilter, setStockFilter] = useState("all");
+  const [pageNumber, setPageNumber] = useState(1);
+  const [sortField, setSortField] = useState<SortField | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  // Debounce search input by 400 ms
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 400);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // Reset to page 1 whenever filters change
+  useEffect(() => {
+    setPageNumber(1);
+  }, [debouncedSearch, categoryFilter, stockFilter]);
+
+  const queryKey = ["products", pageNumber, PAGE_SIZE, debouncedSearch, categoryFilter, stockFilter] as const;
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey,
+    queryFn: () =>
+      productService.getAll(
+        {
+          pageNumber,
+          pageSize: PAGE_SIZE,
+          searchTerm: debouncedSearch || undefined,
+          categoryId: categoryFilter !== "all" ? categoryFilter : undefined,
+          lowStockOnly: stockFilter === "low",
+        },
+        session?.accessToken,
+      ),
+    enabled: !!session?.accessToken,
+    placeholderData: (prev) => prev,
+  });
+
+  function toggleSort(field: SortField) {
+    if (sortField === field) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortDir("asc");
+    }
+  }
+
+  const rawProducts = data?.data ?? [];
+  const products = sortField
+    ? [...rawProducts].sort((a, b) => {
+        const valA = a[sortField];
+        const valB = b[sortField];
+        const cmp = typeof valA === "string" ? valA.localeCompare(valB as string) : (valA as number) - (valB as number);
+        return sortDir === "asc" ? cmp : -cmp;
+      })
+    : rawProducts;
+  const totalPages = data?.totalPages ?? 1;
+  const totalRecords = data?.totalRecords ?? 0;
 
   const isAdmin = session?.user.roles.includes("admin");
 
-  const filtered = useMemo(() => {
-    return products.filter((p) => {
-      const q = search.toLowerCase();
-      const matchesSearch =
-        p.name.toLowerCase().includes(q) ||
-        (p.categoryName ?? "").toLowerCase().includes(q);
-      const matchesCategory =
-        categoryFilter === "all" || p.categoryId === categoryFilter;
-      const matchesStock =
-        stockFilter === "all" || (stockFilter === "low" && p.stockQuantity < 10);
-      return matchesSearch && matchesCategory && matchesStock;
-    });
-  }, [products, search, categoryFilter, stockFilter]);
+  function invalidateProducts() {
+    queryClient.invalidateQueries({ queryKey: ["products"] });
+    router.refresh();
+  }
 
   const deleteMutation = useDeleteProduct({
-    onSuccess: (deletedId) => {
+    onSuccess: () => {
       toast.success("Produto excluído com sucesso!");
-      setProducts((prev) => prev.filter((p) => p.id !== deletedId));
       setModal({ type: "none" });
-      router.refresh();
+      invalidateProducts();
     },
-    onError: (error: Error) => {
-      toast.error(error.message ?? "Erro ao excluir produto.");
+    onError: (err: Error) => {
+      toast.error(err.message ?? "Erro ao excluir produto.");
     },
   });
 
-  function handleCreated(product: Product) {
-    setProducts((prev) => [product, ...prev]);
+  function handleCreated() {
     setModal({ type: "none" });
-    router.refresh();
+    invalidateProducts();
   }
 
-  function handleUpdated(product: Product) {
-    setProducts((prev) => prev.map((p) => (p.id === product.id ? product : p)));
+  function handleUpdated() {
     setModal({ type: "none" });
-    router.refresh();
+    invalidateProducts();
   }
 
-  function handleStockUpdated(product: Product) {
-    setProducts((prev) => prev.map((p) => (p.id === product.id ? product : p)));
+  function handleStockUpdated() {
     setModal({ type: "none" });
-    router.refresh();
+    invalidateProducts();
   }
 
   return (
@@ -116,9 +171,9 @@ export default function ProductsClient({
       </div>
 
       {/* Filtros */}
-      <div className="mb-5 flex flex-col gap-3 sm:flex-row">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <Input
-          placeholder="Buscar por nome ou categoria..."
+          placeholder="Buscar por nome ou descrição..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="sm:max-w-xs"
@@ -129,7 +184,7 @@ export default function ProductsClient({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas as categorias</SelectItem>
-            {categories.map((cat) => (
+            {initialCategories.map((cat) => (
               <SelectItem key={cat.id} value={cat.id}>
                 {cat.name}
               </SelectItem>
@@ -150,31 +205,53 @@ export default function ProductsClient({
             </SelectItem>
           </SelectContent>
         </Select>
-        <p className="self-center text-sm text-zinc-400">
-          {filtered.length} produto(s)
-        </p>
+        {!isLoading && (
+          <p className="self-center text-sm text-zinc-400">
+            {totalRecords} produto(s)
+          </p>
+        )}
       </div>
 
       {error ? (
         <p className="text-sm text-red-500">{error}</p>
-      ) : filtered.length === 0 ? (
+      ) : isError ? (
+        <p className="text-sm text-red-500">Erro ao carregar produtos.</p>
+      ) : isLoading ? (
+        <div className="space-y-2">
+          {Array.from({ length: PAGE_SIZE }).map((_, i) => (
+            <div
+              key={i}
+              className="h-14 animate-pulse rounded-lg bg-zinc-100 dark:bg-zinc-800"
+            />
+          ))}
+        </div>
+      ) : products.length === 0 ? (
         <p className="text-sm text-zinc-400">Nenhum produto encontrado.</p>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
           <table className="min-w-full divide-y divide-zinc-100 dark:divide-zinc-700">
             <thead>
               <tr className="bg-zinc-50 dark:bg-zinc-900">
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                  Produto
+                <th
+                  className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+                  onClick={() => toggleSort("name")}
+                >
+                  Produto <SortIcon field="name" sortField={sortField} sortDir={sortDir} />
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">
                   Categoria
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                  Preço
+                <th
+                  className="cursor-pointer select-none px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+                  onClick={() => toggleSort("price")}
+                >
+                  Preço <SortIcon field="price" sortField={sortField} sortDir={sortDir} />
                 </th>
-                <th className="px-6 py-3 text-center text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                  Estoque
+                <th
+                  className="cursor-pointer select-none px-6 py-3 text-center text-xs font-semibold uppercase tracking-wide text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+                  onClick={() => toggleSort("stockQuantity")}
+                >
+                  Estoque <SortIcon field="stockQuantity" sortField={sortField} sortDir={sortDir} />
                 </th>
                 {isAdmin && (
                   <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500">
@@ -184,13 +261,13 @@ export default function ProductsClient({
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100 dark:divide-zinc-700">
-              {filtered.map((product) => (
+              {products.map((product) => (
                 <tr
                   key={product.id}
                   className={cn(
                     "hover:bg-zinc-50 dark:hover:bg-zinc-900/50",
                     product.stockQuantity < 10 &&
-                      "bg-amber-50/60 dark:bg-amber-900/10"
+                      "bg-amber-50/60 dark:bg-amber-900/10",
                   )}
                 >
                   <td className="px-6 py-4">
@@ -259,9 +336,38 @@ export default function ProductsClient({
         </div>
       )}
 
+      {/* Paginação */}
+      {!isLoading && totalPages > 1 && (
+        <div className="mt-4 flex items-center justify-between">
+          <p className="text-sm text-zinc-500">
+            Página {pageNumber} de {totalPages}
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={pageNumber <= 1}
+              onClick={() => setPageNumber((p) => p - 1)}
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Anterior
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={pageNumber >= totalPages}
+              onClick={() => setPageNumber((p) => p + 1)}
+            >
+              Próxima
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
       {modal.type === "create" && (
         <ProductFormModal
-          categories={categories}
+          categories={initialCategories}
           onClose={() => setModal({ type: "none" })}
           onSuccess={handleCreated}
         />
@@ -270,7 +376,7 @@ export default function ProductsClient({
       {modal.type === "edit" && (
         <ProductFormModal
           product={modal.product}
-          categories={categories}
+          categories={initialCategories}
           onClose={() => setModal({ type: "none" })}
           onSuccess={handleUpdated}
         />

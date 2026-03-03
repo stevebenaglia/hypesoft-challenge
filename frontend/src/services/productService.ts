@@ -11,11 +11,23 @@ export interface CreateProductData {
 
 export type UpdateProductData = CreateProductData;
 
+export interface GetProductsParams {
+  pageNumber?: number;
+  pageSize?: number;
+  searchTerm?: string;
+  categoryId?: string;
+  lowStockOnly?: boolean;
+}
+
 export const productService = {
-  getAll: (pageSize = 100, accessToken?: string) =>
-    apiFetch<PagedResult<Product>>(`/api/products?pageSize=${pageSize}`, {
-      accessToken,
-    }),
+  getAll: (params: GetProductsParams = {}, accessToken?: string) => {
+    const { pageNumber = 1, pageSize = 10, searchTerm, categoryId, lowStockOnly } = params;
+    const qs = new URLSearchParams({ pageNumber: String(pageNumber), pageSize: String(pageSize) });
+    if (searchTerm) qs.set("searchTerm", searchTerm);
+    if (categoryId && categoryId !== "all") qs.set("categoryId", categoryId);
+    if (lowStockOnly) qs.set("lowStockOnly", "true");
+    return apiFetch<PagedResult<Product>>(`/api/products?${qs}`, { accessToken });
+  },
 
   getById: (id: string, accessToken?: string) =>
     apiFetch<Product>(`/api/products/${id}`, { accessToken }),
