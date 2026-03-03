@@ -34,7 +34,7 @@ public sealed class UpdateStockCommandValidatorTests
         var result = await _validator.TestValidateAsync(command);
 
         result.ShouldHaveValidationErrorFor(x => x.Quantity)
-            .WithErrorMessage("Stock quantity must be zero or greater.");
+            .WithErrorMessage("A quantidade em estoque deve ser zero ou maior.");
     }
 
     [Fact]
@@ -45,6 +45,6 @@ public sealed class UpdateStockCommandValidatorTests
         var result = await _validator.TestValidateAsync(command);
 
         result.ShouldHaveValidationErrorFor(x => x.Quantity)
-            .WithErrorMessage("Stock quantity must not exceed 1,000,000.");
+            .WithErrorMessage("A quantidade em estoque não pode ultrapassar 1.000.000.");
     }
 }

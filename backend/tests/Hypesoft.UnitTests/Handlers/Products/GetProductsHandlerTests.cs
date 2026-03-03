@@ -65,7 +65,7 @@ public sealed class GetProductsHandlerTests
 
         result.Should().Be(cached);
         _productRepoMock.Verify(r => r.GetPagedAsync(
-            It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
+            It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
@@ -74,7 +74,7 @@ public sealed class GetProductsHandlerTests
     {
         var products = new List<Product> { BuildProduct("p1", "Laptop", "cat-1") };
         _productRepoMock
-            .Setup(r => r.GetPagedAsync(1, 10, null, null, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetPagedAsync(1, 10, null, null, false, It.IsAny<CancellationToken>()))
             .ReturnsAsync((products, 1));
         _mapperMock
             .Setup(m => m.Map<IEnumerable<ProductDto>>(It.IsAny<IEnumerable<Product>>()))
@@ -82,7 +82,7 @@ public sealed class GetProductsHandlerTests
 
         await _handler.Handle(new GetProductsQuery(), CancellationToken.None);
 
-        _productRepoMock.Verify(r => r.GetPagedAsync(1, 10, null, null, It.IsAny<CancellationToken>()), Times.Once);
+        _productRepoMock.Verify(r => r.GetPagedAsync(1, 10, null, null, false, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -90,7 +90,7 @@ public sealed class GetProductsHandlerTests
     {
         var products = new List<Product> { BuildProduct("p1", "Laptop", "cat-1") };
         _productRepoMock
-            .Setup(r => r.GetPagedAsync(1, 10, null, null, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetPagedAsync(1, 10, null, null, false, It.IsAny<CancellationToken>()))
             .ReturnsAsync((products, 1));
         _mapperMock
             .Setup(m => m.Map<IEnumerable<ProductDto>>(It.IsAny<IEnumerable<Product>>()))
@@ -108,7 +108,7 @@ public sealed class GetProductsHandlerTests
     {
         var products = new List<Product> { BuildProduct("p1", "Laptop", "cat-1") };
         _productRepoMock
-            .Setup(r => r.GetPagedAsync(1, 10, null, null, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetPagedAsync(1, 10, null, null, false, It.IsAny<CancellationToken>()))
             .ReturnsAsync((products, 1));
         _mapperMock
             .Setup(m => m.Map<IEnumerable<ProductDto>>(It.IsAny<IEnumerable<Product>>()))
@@ -130,7 +130,7 @@ public sealed class GetProductsHandlerTests
     {
         var dtos = new List<ProductDto> { new() { Id = "p1", Name = "Laptop", CategoryId = "cat-1" } };
         _productRepoMock
-            .Setup(r => r.GetPagedAsync(1, 10, null, null, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetPagedAsync(1, 10, null, null, false, It.IsAny<CancellationToken>()))
             .ReturnsAsync((new List<Product>(), 1));
         _mapperMock
             .Setup(m => m.Map<IEnumerable<ProductDto>>(It.IsAny<IEnumerable<Product>>()))

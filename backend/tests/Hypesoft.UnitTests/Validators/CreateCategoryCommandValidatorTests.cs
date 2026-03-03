@@ -51,7 +51,7 @@ public sealed class CreateCategoryCommandValidatorTests
         var result = await _validator.TestValidateAsync(command);
 
         result.ShouldHaveValidationErrorFor(x => x.Name)
-            .WithErrorMessage("Name is required.");
+            .WithErrorMessage("O nome é obrigatório.");
     }
 
     [Fact]
@@ -62,7 +62,7 @@ public sealed class CreateCategoryCommandValidatorTests
         var result = await _validator.TestValidateAsync(command);
 
         result.ShouldHaveValidationErrorFor(x => x.Name)
-            .WithErrorMessage("Name must not exceed 100 characters.");
+            .WithErrorMessage("O nome não pode ultrapassar 100 caracteres.");
     }
 
     [Theory]
@@ -76,7 +76,7 @@ public sealed class CreateCategoryCommandValidatorTests
         var result = await _validator.TestValidateAsync(command);
 
         result.ShouldHaveValidationErrorFor(x => x.Name)
-            .WithErrorMessage("Name must not contain HTML tags.");
+            .WithErrorMessage("O nome não pode conter tags HTML.");
     }
 
     [Fact]
@@ -91,7 +91,7 @@ public sealed class CreateCategoryCommandValidatorTests
         var result = await _validator.TestValidateAsync(command);
 
         result.ShouldHaveValidationErrorFor(x => x.Name)
-            .WithErrorMessage("A category with this name already exists.");
+            .WithErrorMessage("Já existe uma categoria com este nome.");
     }
 
     [Fact]
@@ -102,7 +102,7 @@ public sealed class CreateCategoryCommandValidatorTests
         var result = await _validator.TestValidateAsync(command);
 
         result.ShouldHaveValidationErrorFor(x => x.Description)
-            .WithErrorMessage("Description must not exceed 500 characters.");
+            .WithErrorMessage("A descrição não pode ultrapassar 500 caracteres.");
     }
 
     [Theory]
@@ -115,6 +115,6 @@ public sealed class CreateCategoryCommandValidatorTests
         var result = await _validator.TestValidateAsync(command);
 
         result.ShouldHaveValidationErrorFor(x => x.Description)
-            .WithErrorMessage("Description must not contain HTML tags.");
+            .WithErrorMessage("A descrição não pode conter tags HTML.");
     }
 }

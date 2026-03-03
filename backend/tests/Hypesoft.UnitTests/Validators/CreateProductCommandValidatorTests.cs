@@ -42,7 +42,7 @@ public sealed class CreateProductCommandValidatorTests
         var result = await _validator.TestValidateAsync(command);
 
         result.ShouldHaveValidationErrorFor(x => x.Name)
-            .WithErrorMessage("Name is required.");
+            .WithErrorMessage("O nome é obrigatório.");
     }
 
     [Fact]
@@ -53,7 +53,7 @@ public sealed class CreateProductCommandValidatorTests
         var result = await _validator.TestValidateAsync(command);
 
         result.ShouldHaveValidationErrorFor(x => x.Name)
-            .WithErrorMessage("Name must not exceed 200 characters.");
+            .WithErrorMessage("O nome não pode ultrapassar 200 caracteres.");
     }
 
     [Theory]
@@ -66,7 +66,7 @@ public sealed class CreateProductCommandValidatorTests
         var result = await _validator.TestValidateAsync(command);
 
         result.ShouldHaveValidationErrorFor(x => x.Name)
-            .WithErrorMessage("Name must not contain HTML tags.");
+            .WithErrorMessage("O nome não pode conter tags HTML.");
     }
 
     [Theory]
@@ -80,7 +80,7 @@ public sealed class CreateProductCommandValidatorTests
         var result = await _validator.TestValidateAsync(command);
 
         result.ShouldHaveValidationErrorFor(x => x.Price)
-            .WithErrorMessage("Price must be greater than zero.");
+            .WithErrorMessage("O preço deve ser maior que zero.");
     }
 
     [Fact]
@@ -91,7 +91,7 @@ public sealed class CreateProductCommandValidatorTests
         var result = await _validator.TestValidateAsync(command);
 
         result.ShouldHaveValidationErrorFor(x => x.StockQuantity)
-            .WithErrorMessage("Stock quantity must be zero or greater.");
+            .WithErrorMessage("A quantidade em estoque deve ser zero ou maior.");
     }
 
     [Theory]
@@ -104,7 +104,7 @@ public sealed class CreateProductCommandValidatorTests
         var result = await _validator.TestValidateAsync(command);
 
         result.ShouldHaveValidationErrorFor(x => x.CategoryId)
-            .WithErrorMessage("CategoryId is required.");
+            .WithErrorMessage("A categoria é obrigatória.");
     }
 
     [Fact]
@@ -119,6 +119,6 @@ public sealed class CreateProductCommandValidatorTests
         var result = await _validator.TestValidateAsync(command);
 
         result.ShouldHaveValidationErrorFor(x => x.CategoryId)
-            .WithErrorMessage("Category not found.");
+            .WithErrorMessage("Categoria não encontrada.");
     }
 }
