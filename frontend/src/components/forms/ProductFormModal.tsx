@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { productService } from "@/services/productService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,6 +59,8 @@ export default function ProductFormModal({
 }: ProductFormModalProps) {
   const { data: session } = useSession();
   const isEditing = !!product;
+  const t = useTranslations("forms.product");
+  const tCommon = useTranslations("common");
 
   const {
     register,
@@ -93,11 +96,11 @@ export default function ProductFormModal({
         ? productService.update(product!.id, data, session?.accessToken)
         : productService.create(data, session?.accessToken),
     onSuccess: (savedProduct) => {
-      toast.success(isEditing ? "Produto atualizado com sucesso!" : "Produto criado com sucesso!");
+      toast.success(isEditing ? t("toast.updated") : t("toast.created"));
       onSuccess(savedProduct);
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : "Erro ao salvar produto.");
+      toast.error(error instanceof Error ? error.message : t("toast.error"));
     },
   });
 
@@ -105,7 +108,7 @@ export default function ProductFormModal({
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{isEditing ? "Editar Produto" : "Novo Produto"}</DialogTitle>
+          <DialogTitle>{isEditing ? t("editTitle") : t("createTitle")}</DialogTitle>
         </DialogHeader>
 
         <form
@@ -114,7 +117,7 @@ export default function ProductFormModal({
         >
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="name">
-              Nome <span className="text-red-500">*</span>
+              {t("name")} <span className="text-red-500">{tCommon("required")}</span>
             </Label>
             <Input id="name" autoFocus {...register("name")} />
             {errors.name && (
@@ -123,14 +126,14 @@ export default function ProductFormModal({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="description">Descrição</Label>
+            <Label htmlFor="description">{t("description")}</Label>
             <Textarea id="description" rows={2} {...register("description")} />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="price">
-                Preço (R$) <span className="text-red-500">*</span>
+                {t("price")} <span className="text-red-500">{tCommon("required")}</span>
               </Label>
               <Input
                 id="price"
@@ -145,7 +148,7 @@ export default function ProductFormModal({
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="stockQuantity">
-                Qtd. Estoque <span className="text-red-500">*</span>
+                {t("stockQty")} <span className="text-red-500">{tCommon("required")}</span>
               </Label>
               <Input
                 id="stockQuantity"
@@ -163,7 +166,7 @@ export default function ProductFormModal({
 
           <div className="flex flex-col gap-1.5">
             <Label>
-              Categoria <span className="text-red-500">*</span>
+              {t("category")} <span className="text-red-500">{tCommon("required")}</span>
             </Label>
             <Controller
               name="categoryId"
@@ -171,7 +174,7 @@ export default function ProductFormModal({
               render={({ field }) => (
                 <Select value={field.value} onValueChange={field.onChange}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione uma categoria" />
+                    <SelectValue placeholder={t("selectCategory")} />
                   </SelectTrigger>
                   <SelectContent>
                     {categories.map((cat) => (
@@ -190,14 +193,14 @@ export default function ProductFormModal({
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
-              Cancelar
+              {tCommon("cancel")}
             </Button>
             <Button type="submit" disabled={mutation.isPending}>
               {mutation.isPending
-                ? "Salvando..."
+                ? tCommon("saving")
                 : isEditing
-                  ? "Salvar"
-                  : "Criar"}
+                  ? tCommon("save")
+                  : tCommon("create")}
             </Button>
           </DialogFooter>
         </form>

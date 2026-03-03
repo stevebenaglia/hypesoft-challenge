@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
+import { exportProductsPdf } from "@/utils/pdfExport";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -63,6 +65,7 @@ export default function ProductsClient({
   const { data: session } = useSession();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const t = useTranslations("products");
 
   const [modal, setModal] = useState<ModalState>({ type: "none" });
   const [search, setSearch] = useState("");
@@ -133,12 +136,12 @@ export default function ProductsClient({
 
   const deleteMutation = useDeleteProduct({
     onSuccess: () => {
-      toast.success("Produto excluído com sucesso!");
+      toast.success(t("toast.deleted"));
       setModal({ type: "none" });
       invalidateProducts();
     },
     onError: (err: Error) => {
-      toast.error(err.message ?? "Erro ao excluir produto.");
+      toast.error(err.message ?? t("toast.deleteError"));
     },
   });
 
@@ -161,29 +164,45 @@ export default function ProductsClient({
     <main className="mx-auto max-w-6xl px-6 py-8">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
-          Produtos
+          {t("title")}
         </h1>
-        {isAdmin && (
-          <Button onClick={() => setModal({ type: "create" })}>
-            + Novo Produto
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              exportProductsPdf(products, {
+                search: debouncedSearch || undefined,
+                category: categoryFilter !== "all" ? categoryFilter : undefined,
+                stockFilter: stockFilter !== "all" ? stockFilter : undefined,
+              })
+            }
+            disabled={products.length === 0}
+          >
+            Exportar PDF
           </Button>
-        )}
+          {isAdmin && (
+            <Button onClick={() => setModal({ type: "create" })}>
+              {t("newProduct")}
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Filtros */}
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <Input
-          placeholder="Buscar por nome ou descrição..."
+          placeholder={t("searchPlaceholder")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="sm:max-w-xs"
         />
         <Select value={categoryFilter} onValueChange={setCategoryFilter}>
           <SelectTrigger className="sm:max-w-xs">
-            <SelectValue placeholder="Todas as categorias" />
+            <SelectValue placeholder={t("allCategories")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todas as categorias</SelectItem>
+            <SelectItem value="all">{t("allCategories")}</SelectItem>
             {initialCategories.map((cat) => (
               <SelectItem key={cat.id} value={cat.id}>
                 {cat.name}
@@ -193,21 +212,21 @@ export default function ProductsClient({
         </Select>
         <Select value={stockFilter} onValueChange={setStockFilter}>
           <SelectTrigger className="sm:max-w-xs">
-            <SelectValue placeholder="Todos os estoques" />
+            <SelectValue placeholder={t("allStock")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todos os estoques</SelectItem>
+            <SelectItem value="all">{t("allStock")}</SelectItem>
             <SelectItem value="low">
               <span className="flex items-center gap-1.5">
                 <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
-                Estoque baixo (&lt; 10)
+                {t("lowStockFilter")}
               </span>
             </SelectItem>
           </SelectContent>
         </Select>
         {!isLoading && (
           <p className="self-center text-sm text-zinc-400">
-            {totalRecords} produto(s)
+            {t("productCount", { count: totalRecords })}
           </p>
         )}
       </div>
@@ -226,7 +245,7 @@ export default function ProductsClient({
           ))}
         </div>
       ) : products.length === 0 ? (
-        <p className="text-sm text-zinc-400">Nenhum produto encontrado.</p>
+        <p className="text-sm text-zinc-400">{t("noProducts")}</p>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
           <table className="min-w-full divide-y divide-zinc-100 dark:divide-zinc-700">
@@ -236,26 +255,26 @@ export default function ProductsClient({
                   className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
                   onClick={() => toggleSort("name")}
                 >
-                  Produto <SortIcon field="name" sortField={sortField} sortDir={sortDir} />
+                  {t("columns.product")} <SortIcon field="name" sortField={sortField} sortDir={sortDir} />
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                  Categoria
+                  {t("columns.category")}
                 </th>
                 <th
                   className="cursor-pointer select-none px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
                   onClick={() => toggleSort("price")}
                 >
-                  Preço <SortIcon field="price" sortField={sortField} sortDir={sortDir} />
+                  {t("columns.price")} <SortIcon field="price" sortField={sortField} sortDir={sortDir} />
                 </th>
                 <th
                   className="cursor-pointer select-none px-6 py-3 text-center text-xs font-semibold uppercase tracking-wide text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
                   onClick={() => toggleSort("stockQuantity")}
                 >
-                  Estoque <SortIcon field="stockQuantity" sortField={sortField} sortDir={sortDir} />
+                  {t("columns.stock")} <SortIcon field="stockQuantity" sortField={sortField} sortDir={sortDir} />
                 </th>
                 {isAdmin && (
                   <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                    Ações
+                    {t("columns.actions")}
                   </th>
                 )}
               </tr>
@@ -310,21 +329,21 @@ export default function ProductsClient({
                           size="sm"
                           onClick={() => setModal({ type: "stock", product })}
                         >
-                          Estoque
+                          {t("actions.stock")}
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => setModal({ type: "edit", product })}
                         >
-                          Editar
+                          {t("actions.edit")}
                         </Button>
                         <Button
                           variant="destructive"
                           size="sm"
                           onClick={() => setModal({ type: "delete", product })}
                         >
-                          Excluir
+                          {t("actions.delete")}
                         </Button>
                       </div>
                     </td>
@@ -340,7 +359,7 @@ export default function ProductsClient({
       {!isLoading && totalPages > 1 && (
         <div className="mt-4 flex items-center justify-between">
           <p className="text-sm text-zinc-500">
-            Página {pageNumber} de {totalPages}
+            {t("pagination.page")} {pageNumber} {t("pagination.of")} {totalPages}
           </p>
           <div className="flex gap-2">
             <Button
@@ -350,7 +369,7 @@ export default function ProductsClient({
               onClick={() => setPageNumber((p) => p - 1)}
             >
               <ChevronLeft className="h-4 w-4" />
-              Anterior
+              {t("pagination.previous")}
             </Button>
             <Button
               variant="outline"
@@ -358,7 +377,7 @@ export default function ProductsClient({
               disabled={pageNumber >= totalPages}
               onClick={() => setPageNumber((p) => p + 1)}
             >
-              Próxima
+              {t("pagination.next")}
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
@@ -396,13 +415,13 @@ export default function ProductsClient({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Excluir produto</DialogTitle>
+            <DialogTitle>{t("deleteDialog.title")}</DialogTitle>
             <DialogDescription>
-              Tem certeza que deseja excluir{" "}
+              {t("deleteDialog.confirmPrefix")}{" "}
               <span className="font-medium">
                 {modal.type === "delete" ? modal.product.name : ""}
               </span>
-              ? Esta ação não pode ser desfeita.
+              {t("deleteDialog.confirmSuffix")}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -420,7 +439,7 @@ export default function ProductsClient({
                 deleteMutation.mutate(modal.product.id)
               }
             >
-              {deleteMutation.isPending ? "Excluindo..." : "Excluir"}
+              {deleteMutation.isPending ? "Excluindo..." : t("actions.delete")}
             </Button>
           </DialogFooter>
         </DialogContent>

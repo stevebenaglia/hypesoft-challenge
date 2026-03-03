@@ -1,0 +1,162 @@
+{
+  "nav": {
+    "general": "General",
+    "dashboard": "Dashboard",
+    "products": "Products",
+    "categories": "Categories"
+  },
+  "topbar": {
+    "lightMode": "Light mode",
+    "darkMode": "Dark mode",
+    "admin": "Administrator",
+    "user": "User",
+    "signOut": "Sign out",
+    "language": "Language"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "saving": "Saving...",
+    "deleting": "Deleting...",
+    "actions": "Actions",
+    "name": "Name",
+    "description": "Description",
+    "required": "*"
+  },
+  "products": {
+    "title": "Products",
+    "newProduct": "+ New Product",
+    "searchPlaceholder": "Search by name or description...",
+    "allCategories": "All categories",
+    "allStock": "All stock levels",
+    "lowStockFilter": "Low stock (< 10)",
+    "productCount": "{count} product(s)",
+    "noProducts": "No products found.",
+    "columns": {
+      "product": "Product",
+      "category": "Category",
+      "price": "Price",
+      "stock": "Stock",
+      "actions": "Actions"
+    },
+    "actions": {
+      "stock": "Stock",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "pagination": {
+      "page": "Page",
+      "of": "of",
+      "previous": "Previous",
+      "next": "Next"
+    },
+    "deleteDialog": {
+      "title": "Delete product",
+      "confirmPrefix": "Are you sure you want to delete",
+      "confirmSuffix": "? This action cannot be undone."
+    },
+    "toast": {
+      "deleted": "Product deleted successfully!",
+      "deleteError": "Error deleting product."
+    }
+  },
+  "categories": {
+    "title": "Categories",
+    "newCategory": "+ New Category",
+    "noCategories": "No categories registered.",
+    "columns": {
+      "name": "Name",
+      "description": "Description",
+      "products": "Products",
+      "actions": "Actions"
+    },
+    "actions": {
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "deleteDialog": {
+      "title": "Delete category",
+      "confirmPrefix": "Are you sure you want to delete",
+      "confirmSuffix": "? Categories with associated products cannot be deleted."
+    },
+    "toast": {
+      "deleted": "Category deleted successfully!",
+      "deleteError": "Error deleting category."
+    }
+  },
+  "forms": {
+    "product": {
+      "editTitle": "Edit Product",
+      "createTitle": "New Product",
+      "name": "Name",
+      "description": "Description",
+      "price": "Price (USD)",
+      "stockQty": "Stock Qty.",
+      "category": "Category",
+      "selectCategory": "Select a category",
+      "validation": {
+        "nameRequired": "Name is required",
+        "priceRequired": "Price is required",
+        "pricePositive": "Price must be greater than zero",
+        "qtyRequired": "Quantity is required",
+        "qtyMin": "Quantity must be zero or greater",
+        "categoryRequired": "Please select a category"
+      },
+      "toast": {
+        "created": "Product created successfully!",
+        "updated": "Product updated successfully!",
+        "error": "Error saving product."
+      }
+    },
+    "category": {
+      "editTitle": "Edit Category",
+      "createTitle": "New Category",
+      "name": "Name",
+      "description": "Description",
+      "validation": {
+        "nameRequired": "Name is required"
+      },
+      "toast": {
+        "created": "Category created successfully!",
+        "updated": "Category updated successfully!",
+        "error": "Error saving category."
+      }
+    },
+    "stock": {
+      "title": "Update Stock",
+      "newQty": "New quantity",
+      "validation": {
+        "qtyRequired": "Quantity is required",
+        "qtyMin": "Quantity must be zero or greater",
+        "qtyMax": "Quantity cannot exceed 1,000,000"
+      },
+      "toast": {
+        "updated": "Stock updated successfully!",
+        "error": "Error updating stock."
+      }
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Overview of your inventory",
+    "errorLoad": "Error loading dashboard.",
+    "stats": {
+      "totalProducts": "Total Products",
+      "totalStockValue": "Total Stock Value",
+      "lowStock": "Low Stock",
+      "lowStockSubtitle": "Products with fewer than 10 units"
+    },
+    "lowStockTable": {
+      "title": "Low Stock Products",
+      "subtitle": "Warning: fewer than 10 units",
+      "empty": "No low stock products."
+    },
+    "chart": {
+      "title": "Products by Category",
+      "subtitle": "Catalog distribution"
+    }
+  }
+}

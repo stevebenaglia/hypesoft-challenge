@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { categoryService } from "@/services/categoryService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +41,8 @@ export default function CategoryFormModal({
 }: CategoryFormModalProps) {
   const { data: session } = useSession();
   const isEditing = !!category;
+  const t = useTranslations("forms.category");
+  const tCommon = useTranslations("common");
 
   const {
     register,
@@ -60,11 +63,11 @@ export default function CategoryFormModal({
         ? categoryService.update(category!.id, data, session?.accessToken)
         : categoryService.create(data, session?.accessToken),
     onSuccess: (savedCategory) => {
-      toast.success(isEditing ? "Categoria atualizada com sucesso!" : "Categoria criada com sucesso!");
+      toast.success(isEditing ? t("toast.updated") : t("toast.created"));
       onSuccess(savedCategory);
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : "Erro ao salvar categoria.");
+      toast.error(error instanceof Error ? error.message : t("toast.error"));
     },
   });
 
@@ -73,7 +76,7 @@ export default function CategoryFormModal({
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>
-            {isEditing ? "Editar Categoria" : "Nova Categoria"}
+            {isEditing ? t("editTitle") : t("createTitle")}
           </DialogTitle>
         </DialogHeader>
 
@@ -83,7 +86,7 @@ export default function CategoryFormModal({
         >
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="name">
-              Nome <span className="text-red-500">*</span>
+              {t("name")} <span className="text-red-500">{tCommon("required")}</span>
             </Label>
             <Input id="name" autoFocus {...register("name")} />
             {errors.name && (
@@ -92,7 +95,7 @@ export default function CategoryFormModal({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="description">Descrição</Label>
+            <Label htmlFor="description">{t("description")}</Label>
             <Textarea id="description" rows={3} {...register("description")} />
             {errors.description && (
               <p className="text-xs text-red-500">{errors.description.message}</p>
@@ -101,14 +104,14 @@ export default function CategoryFormModal({
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
-              Cancelar
+              {tCommon("cancel")}
             </Button>
             <Button type="submit" disabled={mutation.isPending}>
               {mutation.isPending
-                ? "Salvando..."
+                ? tCommon("saving")
                 : isEditing
-                  ? "Salvar"
-                  : "Criar"}
+                  ? tCommon("save")
+                  : tCommon("create")}
             </Button>
           </DialogFooter>
         </form>

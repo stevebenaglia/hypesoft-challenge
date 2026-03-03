@@ -3,6 +3,8 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { useTranslations } from "next-intl";
+import { exportCategoriesPdf } from "@/utils/pdfExport";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -45,6 +47,8 @@ export default function CategoriesClient({
 }: CategoriesClientProps) {
   const { data: session } = useSession();
   const router = useRouter();
+  const t = useTranslations("categories");
+  const tCommon = useTranslations("common");
   const [categories, setCategories] = useState<Category[]>(initialCategories);
   const [modal, setModal] = useState<ModalState>({ type: "none" });
   const [sortField, setSortField] = useState<SortField | null>(null);
@@ -73,13 +77,13 @@ export default function CategoriesClient({
 
   const deleteMutation = useDeleteCategory({
     onSuccess: (deletedId) => {
-      toast.success("Categoria excluída com sucesso!");
+      toast.success(t("toast.deleted"));
       setCategories((prev) => prev.filter((c) => c.id !== deletedId));
       setModal({ type: "none" });
       router.refresh();
     },
     onError: (error: Error) => {
-      toast.error(error.message ?? "Erro ao excluir categoria.");
+      toast.error(error.message ?? t("toast.deleteError"));
     },
   });
 
@@ -101,19 +105,29 @@ export default function CategoriesClient({
     <main className="mx-auto max-w-4xl px-6 py-8">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
-          Categorias
+          {t("title")}
         </h1>
-        {isAdmin && (
-          <Button onClick={() => setModal({ type: "create" })}>
-            + Nova Categoria
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => exportCategoriesPdf(sorted)}
+            disabled={categories.length === 0}
+          >
+            Exportar PDF
           </Button>
-        )}
+          {isAdmin && (
+            <Button onClick={() => setModal({ type: "create" })}>
+              {t("newCategory")}
+            </Button>
+          )}
+        </div>
       </div>
 
       {error ? (
         <p className="text-sm text-red-500">{error}</p>
       ) : categories.length === 0 ? (
-        <p className="text-sm text-zinc-400">Nenhuma categoria cadastrada.</p>
+        <p className="text-sm text-zinc-400">{t("noCategories")}</p>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
           <table className="min-w-full divide-y divide-zinc-100 dark:divide-zinc-700">
@@ -123,20 +137,20 @@ export default function CategoriesClient({
                   className="cursor-pointer select-none px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
                   onClick={() => toggleSort("name")}
                 >
-                  Nome <SortIcon field="name" sortField={sortField} sortDir={sortDir} />
+                  {t("columns.name")} <SortIcon field="name" sortField={sortField} sortDir={sortDir} />
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                  Descrição
+                  {t("columns.description")}
                 </th>
                 <th
                   className="cursor-pointer select-none px-6 py-3 text-center text-xs font-semibold uppercase tracking-wide text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
                   onClick={() => toggleSort("productCount")}
                 >
-                  Produtos <SortIcon field="productCount" sortField={sortField} sortDir={sortDir} />
+                  {t("columns.products")} <SortIcon field="productCount" sortField={sortField} sortDir={sortDir} />
                 </th>
                 {isAdmin && (
                   <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                    Ações
+                    {t("columns.actions")}
                   </th>
                 )}
               </tr>
@@ -164,14 +178,14 @@ export default function CategoriesClient({
                           size="sm"
                           onClick={() => setModal({ type: "edit", category })}
                         >
-                          Editar
+                          {t("actions.edit")}
                         </Button>
                         <Button
                           variant="destructive"
                           size="sm"
                           onClick={() => setModal({ type: "delete", category })}
                         >
-                          Excluir
+                          {t("actions.delete")}
                         </Button>
                       </div>
                     </td>
@@ -204,13 +218,13 @@ export default function CategoriesClient({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Excluir categoria</DialogTitle>
+            <DialogTitle>{t("deleteDialog.title")}</DialogTitle>
             <DialogDescription>
-              Tem certeza que deseja excluir{" "}
+              {t("deleteDialog.confirmPrefix")}{" "}
               <span className="font-medium">
                 {modal.type === "delete" ? modal.category.name : ""}
               </span>
-              ? Categorias com produtos associados não podem ser excluídas.
+              {t("deleteDialog.confirmSuffix")}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -218,7 +232,7 @@ export default function CategoriesClient({
               variant="outline"
               onClick={() => setModal({ type: "none" })}
             >
-              Cancelar
+              {tCommon("cancel")}
             </Button>
             <Button
               variant="destructive"
@@ -228,7 +242,7 @@ export default function CategoriesClient({
                 deleteMutation.mutate(modal.category.id)
               }
             >
-              {deleteMutation.isPending ? "Excluindo..." : "Excluir"}
+              {deleteMutation.isPending ? tCommon("deleting") : tCommon("delete")}
             </Button>
           </DialogFooter>
         </DialogContent>

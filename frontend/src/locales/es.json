@@ -1,0 +1,162 @@
+{
+  "nav": {
+    "general": "General",
+    "dashboard": "Panel",
+    "products": "Productos",
+    "categories": "Categorías"
+  },
+  "topbar": {
+    "lightMode": "Modo claro",
+    "darkMode": "Modo oscuro",
+    "admin": "Administrador",
+    "user": "Usuario",
+    "signOut": "Cerrar sesión",
+    "language": "Idioma"
+  },
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "create": "Crear",
+    "saving": "Guardando...",
+    "deleting": "Eliminando...",
+    "actions": "Acciones",
+    "name": "Nombre",
+    "description": "Descripción",
+    "required": "*"
+  },
+  "products": {
+    "title": "Productos",
+    "newProduct": "+ Nuevo Producto",
+    "searchPlaceholder": "Buscar por nombre o descripción...",
+    "allCategories": "Todas las categorías",
+    "allStock": "Todo el inventario",
+    "lowStockFilter": "Stock bajo (< 10)",
+    "productCount": "{count} producto(s)",
+    "noProducts": "No se encontraron productos.",
+    "columns": {
+      "product": "Producto",
+      "category": "Categoría",
+      "price": "Precio",
+      "stock": "Stock",
+      "actions": "Acciones"
+    },
+    "actions": {
+      "stock": "Stock",
+      "edit": "Editar",
+      "delete": "Eliminar"
+    },
+    "pagination": {
+      "page": "Página",
+      "of": "de",
+      "previous": "Anterior",
+      "next": "Siguiente"
+    },
+    "deleteDialog": {
+      "title": "Eliminar producto",
+      "confirmPrefix": "¿Está seguro de que desea eliminar",
+      "confirmSuffix": "? Esta acción no se puede deshacer."
+    },
+    "toast": {
+      "deleted": "¡Producto eliminado con éxito!",
+      "deleteError": "Error al eliminar el producto."
+    }
+  },
+  "categories": {
+    "title": "Categorías",
+    "newCategory": "+ Nueva Categoría",
+    "noCategories": "No hay categorías registradas.",
+    "columns": {
+      "name": "Nombre",
+      "description": "Descripción",
+      "products": "Productos",
+      "actions": "Acciones"
+    },
+    "actions": {
+      "edit": "Editar",
+      "delete": "Eliminar"
+    },
+    "deleteDialog": {
+      "title": "Eliminar categoría",
+      "confirmPrefix": "¿Está seguro de que desea eliminar",
+      "confirmSuffix": "? Las categorías con productos asociados no pueden eliminarse."
+    },
+    "toast": {
+      "deleted": "¡Categoría eliminada con éxito!",
+      "deleteError": "Error al eliminar la categoría."
+    }
+  },
+  "forms": {
+    "product": {
+      "editTitle": "Editar Producto",
+      "createTitle": "Nuevo Producto",
+      "name": "Nombre",
+      "description": "Descripción",
+      "price": "Precio",
+      "stockQty": "Cant. Stock",
+      "category": "Categoría",
+      "selectCategory": "Seleccione una categoría",
+      "validation": {
+        "nameRequired": "El nombre es obligatorio",
+        "priceRequired": "El precio es obligatorio",
+        "pricePositive": "El precio debe ser mayor que cero",
+        "qtyRequired": "La cantidad es obligatoria",
+        "qtyMin": "La cantidad debe ser cero o mayor",
+        "categoryRequired": "Seleccione una categoría"
+      },
+      "toast": {
+        "created": "¡Producto creado con éxito!",
+        "updated": "¡Producto actualizado con éxito!",
+        "error": "Error al guardar el producto."
+      }
+    },
+    "category": {
+      "editTitle": "Editar Categoría",
+      "createTitle": "Nueva Categoría",
+      "name": "Nombre",
+      "description": "Descripción",
+      "validation": {
+        "nameRequired": "El nombre es obligatorio"
+      },
+      "toast": {
+        "created": "¡Categoría creada con éxito!",
+        "updated": "¡Categoría actualizada con éxito!",
+        "error": "Error al guardar la categoría."
+      }
+    },
+    "stock": {
+      "title": "Actualizar Stock",
+      "newQty": "Nueva cantidad",
+      "validation": {
+        "qtyRequired": "La cantidad es obligatoria",
+        "qtyMin": "La cantidad debe ser cero o mayor",
+        "qtyMax": "La cantidad no puede superar 1.000.000"
+      },
+      "toast": {
+        "updated": "¡Stock actualizado con éxito!",
+        "error": "Error al actualizar el stock."
+      }
+    }
+  },
+  "dashboard": {
+    "title": "Panel",
+    "subtitle": "Resumen de tu inventario",
+    "errorLoad": "Error al cargar el panel.",
+    "stats": {
+      "totalProducts": "Total de Productos",
+      "totalStockValue": "Valor Total del Stock",
+      "lowStock": "Stock Bajo",
+      "lowStockSubtitle": "Productos con menos de 10 unidades"
+    },
+    "lowStockTable": {
+      "title": "Productos con Stock Bajo",
+      "subtitle": "Atención: menos de 10 unidades",
+      "empty": "No hay productos con stock bajo."
+    },
+    "chart": {
+      "title": "Productos por Categoría",
+      "subtitle": "Distribución del catálogo"
+    }
+  }
+}

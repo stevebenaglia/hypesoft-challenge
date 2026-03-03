@@ -1,0 +1,162 @@
+{
+  "nav": {
+    "general": "Geral",
+    "dashboard": "Dashboard",
+    "products": "Produtos",
+    "categories": "Categorias"
+  },
+  "topbar": {
+    "lightMode": "Modo claro",
+    "darkMode": "Modo escuro",
+    "admin": "Administrador",
+    "user": "Usuário",
+    "signOut": "Sair",
+    "language": "Idioma"
+  },
+  "common": {
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "delete": "Excluir",
+    "edit": "Editar",
+    "create": "Criar",
+    "saving": "Salvando...",
+    "deleting": "Excluindo...",
+    "actions": "Ações",
+    "name": "Nome",
+    "description": "Descrição",
+    "required": "*"
+  },
+  "products": {
+    "title": "Produtos",
+    "newProduct": "+ Novo Produto",
+    "searchPlaceholder": "Buscar por nome ou descrição...",
+    "allCategories": "Todas as categorias",
+    "allStock": "Todos os estoques",
+    "lowStockFilter": "Estoque baixo (< 10)",
+    "productCount": "{count} produto(s)",
+    "noProducts": "Nenhum produto encontrado.",
+    "columns": {
+      "product": "Produto",
+      "category": "Categoria",
+      "price": "Preço",
+      "stock": "Estoque",
+      "actions": "Ações"
+    },
+    "actions": {
+      "stock": "Estoque",
+      "edit": "Editar",
+      "delete": "Excluir"
+    },
+    "pagination": {
+      "page": "Página",
+      "of": "de",
+      "previous": "Anterior",
+      "next": "Próxima"
+    },
+    "deleteDialog": {
+      "title": "Excluir produto",
+      "confirmPrefix": "Tem certeza que deseja excluir",
+      "confirmSuffix": "? Esta ação não pode ser desfeita."
+    },
+    "toast": {
+      "deleted": "Produto excluído com sucesso!",
+      "deleteError": "Erro ao excluir produto."
+    }
+  },
+  "categories": {
+    "title": "Categorias",
+    "newCategory": "+ Nova Categoria",
+    "noCategories": "Nenhuma categoria cadastrada.",
+    "columns": {
+      "name": "Nome",
+      "description": "Descrição",
+      "products": "Produtos",
+      "actions": "Ações"
+    },
+    "actions": {
+      "edit": "Editar",
+      "delete": "Excluir"
+    },
+    "deleteDialog": {
+      "title": "Excluir categoria",
+      "confirmPrefix": "Tem certeza que deseja excluir",
+      "confirmSuffix": "? Categorias com produtos associados não podem ser excluídas."
+    },
+    "toast": {
+      "deleted": "Categoria excluída com sucesso!",
+      "deleteError": "Erro ao excluir categoria."
+    }
+  },
+  "forms": {
+    "product": {
+      "editTitle": "Editar Produto",
+      "createTitle": "Novo Produto",
+      "name": "Nome",
+      "description": "Descrição",
+      "price": "Preço (R$)",
+      "stockQty": "Qtd. Estoque",
+      "category": "Categoria",
+      "selectCategory": "Selecione uma categoria",
+      "validation": {
+        "nameRequired": "Nome é obrigatório",
+        "priceRequired": "Preço é obrigatório",
+        "pricePositive": "Preço deve ser maior que zero",
+        "qtyRequired": "Quantidade é obrigatória",
+        "qtyMin": "Quantidade deve ser maior ou igual a zero",
+        "categoryRequired": "Selecione uma categoria"
+      },
+      "toast": {
+        "created": "Produto criado com sucesso!",
+        "updated": "Produto atualizado com sucesso!",
+        "error": "Erro ao salvar produto."
+      }
+    },
+    "category": {
+      "editTitle": "Editar Categoria",
+      "createTitle": "Nova Categoria",
+      "name": "Nome",
+      "description": "Descrição",
+      "validation": {
+        "nameRequired": "Nome é obrigatório"
+      },
+      "toast": {
+        "created": "Categoria criada com sucesso!",
+        "updated": "Categoria atualizada com sucesso!",
+        "error": "Erro ao salvar categoria."
+      }
+    },
+    "stock": {
+      "title": "Atualizar Estoque",
+      "newQty": "Nova quantidade",
+      "validation": {
+        "qtyRequired": "Quantidade é obrigatória",
+        "qtyMin": "Quantidade deve ser maior ou igual a zero",
+        "qtyMax": "Quantidade não pode ultrapassar 1.000.000"
+      },
+      "toast": {
+        "updated": "Estoque atualizado com sucesso!",
+        "error": "Erro ao atualizar estoque."
+      }
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Visão geral do seu estoque",
+    "errorLoad": "Erro ao carregar dashboard.",
+    "stats": {
+      "totalProducts": "Total de Produtos",
+      "totalStockValue": "Valor Total do Estoque",
+      "lowStock": "Estoque Baixo",
+      "lowStockSubtitle": "Produtos com menos de 10 unidades"
+    },
+    "lowStockTable": {
+      "title": "Produtos com Estoque Baixo",
+      "subtitle": "Atenção: abaixo de 10 unidades",
+      "empty": "Nenhum produto com estoque baixo."
+    },
+    "chart": {
+      "title": "Produtos por Categoria",
+      "subtitle": "Distribuição do catálogo"
+    }
+  }
+}

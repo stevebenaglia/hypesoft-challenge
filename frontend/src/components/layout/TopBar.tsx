@@ -3,15 +3,41 @@
 import { useSession, signOut } from "next-auth/react";
 import { Sun, Moon, LogOut, Menu } from "lucide-react";
 import { useTheme } from "@/components/providers/ThemeProvider";
+import { useLocale, LOCALES, type Locale } from "@/components/providers/LocaleProvider";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 
 interface TopBarProps {
   onMenuClick: () => void;
 }
 
+function LanguageSwitcher() {
+  const { locale, setLocale } = useLocale();
+
+  return (
+    <div className="flex items-center rounded-lg border border-zinc-200 bg-zinc-50 p-0.5 dark:border-zinc-700 dark:bg-zinc-800">
+      {LOCALES.map(({ value, label }) => (
+        <button
+          key={value}
+          onClick={() => setLocale(value as Locale)}
+          className={cn(
+            "rounded-md px-2 py-1 text-xs font-semibold transition-colors",
+            locale === value
+              ? "bg-white text-violet-700 shadow-sm dark:bg-zinc-700 dark:text-violet-300"
+              : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
+          )}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function TopBar({ onMenuClick }: TopBarProps) {
   const { data: session } = useSession();
   const { theme, toggle } = useTheme();
+  const t = useTranslations("topbar");
 
   const isAdmin = session?.user.roles.includes("admin");
   const initial = (session?.user.name ?? session?.user.email ?? "U")
@@ -41,8 +67,14 @@ export default function TopBar({ onMenuClick }: TopBarProps) {
       {/* Spacer on desktop */}
       <div className="hidden md:block" />
 
-      {/* Right: theme toggle + user info + logout */}
+      {/* Right: language switcher + theme toggle + user info + logout */}
       <div className="flex items-center gap-2">
+        {/* Language switcher */}
+        <LanguageSwitcher />
+
+        {/* Divider */}
+        <div className="mx-1 h-6 w-px bg-zinc-200 dark:bg-zinc-700" />
+
         {/* Theme toggle */}
         <button
           onClick={toggle}
@@ -52,7 +84,7 @@ export default function TopBar({ onMenuClick }: TopBarProps) {
               ? "text-amber-400 hover:bg-zinc-800"
               : "text-zinc-500 hover:bg-zinc-100"
           )}
-          title={theme === "dark" ? "Modo claro" : "Modo escuro"}
+          title={theme === "dark" ? t("lightMode") : t("darkMode")}
         >
           {theme === "dark" ? (
             <Sun className="h-4 w-4" />
@@ -74,7 +106,7 @@ export default function TopBar({ onMenuClick }: TopBarProps) {
               {session?.user.name ?? session?.user.email}
             </p>
             <p className="text-xs leading-tight text-zinc-500">
-              {isAdmin ? "Administrador" : "Usuário"}
+              {isAdmin ? t("admin") : t("user")}
             </p>
           </div>
         </div>
@@ -83,7 +115,7 @@ export default function TopBar({ onMenuClick }: TopBarProps) {
         <button
           onClick={() => signOut({ callbackUrl: "/auth/signin" })}
           className="rounded-lg p-2 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
-          title="Sair"
+          title={t("signOut")}
         >
           <LogOut className="h-4 w-4" />
         </button>

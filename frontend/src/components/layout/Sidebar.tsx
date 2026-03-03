@@ -5,17 +5,9 @@ import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { LayoutDashboard, Package, Tag } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import type { DashboardSummary } from "@/types/api";
-
-const mainNav = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard, showBadge: false },
-  { href: "/products", label: "Produtos", icon: Package, showBadge: true },
-];
-
-const adminNav = [
-  { href: "/categories", label: "Categorias", icon: Tag, showBadge: false },
-];
 
 function NavItem({
   href,
@@ -70,6 +62,7 @@ function NavItem({
 function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
   const { data: session } = useSession();
   const isAdmin = session?.user.roles.includes("admin");
+  const t = useTranslations("nav");
 
   const { data: dashboard } = useQuery<DashboardSummary | null>({
     queryKey: ["dashboard-sidebar"],
@@ -87,6 +80,15 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
 
   const lowStockCount = dashboard?.lowStockProducts.length ?? 0;
 
+  const mainNav = [
+    { href: "/", label: t("dashboard"), icon: LayoutDashboard, showBadge: false },
+    { href: "/products", label: t("products"), icon: Package, showBadge: true },
+  ];
+
+  const adminNav = [
+    { href: "/categories", label: t("categories"), icon: Tag, showBadge: false },
+  ];
+
   return (
     <div className="flex h-full w-64 flex-col border-r border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
       {/* Brand */}
@@ -102,7 +104,7 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
       {/* Navigation */}
       <nav className="flex-1 space-y-0.5 px-3">
         <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-400">
-          Geral
+          {t("general")}
         </p>
         {mainNav.map((item) => (
           <NavItem

@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { productService } from "@/services/productService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +43,8 @@ export default function UpdateStockModal({
   onSuccess,
 }: UpdateStockModalProps) {
   const { data: session } = useSession();
+  const t = useTranslations("forms.stock");
+  const tCommon = useTranslations("common");
 
   const {
     register,
@@ -57,11 +60,11 @@ export default function UpdateStockModal({
     mutationFn: (data: StockFormData) =>
       productService.updateStock(product.id, data.quantity, session?.accessToken),
     onSuccess: (updated) => {
-      toast.success("Estoque atualizado com sucesso!");
+      toast.success(t("toast.updated"));
       onSuccess(updated);
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : "Erro ao atualizar estoque.");
+      toast.error(error instanceof Error ? error.message : t("toast.error"));
     },
   });
 
@@ -69,7 +72,7 @@ export default function UpdateStockModal({
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>Atualizar Estoque</DialogTitle>
+          <DialogTitle>{t("title")}</DialogTitle>
           <DialogDescription className="truncate">{product.name}</DialogDescription>
         </DialogHeader>
 
@@ -78,7 +81,7 @@ export default function UpdateStockModal({
           className="flex flex-col gap-4"
         >
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="quantity">Nova quantidade</Label>
+            <Label htmlFor="quantity">{t("newQty")}</Label>
             <Input
               id="quantity"
               type="number"
@@ -94,10 +97,10 @@ export default function UpdateStockModal({
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
-              Cancelar
+              {tCommon("cancel")}
             </Button>
             <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending ? "Salvando..." : "Salvar"}
+              {mutation.isPending ? tCommon("saving") : tCommon("save")}
             </Button>
           </DialogFooter>
         </form>
